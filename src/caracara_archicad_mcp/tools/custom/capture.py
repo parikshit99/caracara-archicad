@@ -12,40 +12,25 @@ read back and deleted at once. An element preview comes back from Archicad in me
 from __future__ import annotations
 
 import base64
-import os
 import uuid
 from pathlib import Path
 from typing import Any, Literal
 
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.server.mcpserver.utilities.types import Image
-from mcp.types import ToolAnnotations
+from mcp.types import ImageContent, ToolAnnotations
 
 from caracara_archicad_mcp.app import mcp
 from caracara_archicad_mcp.file_paths import confine_path
+from caracara_archicad_mcp.images import images_allowed
 from caracara_archicad_mcp.tools.custom.element_sets import element_id
-from caracara_archicad_mcp.tools.custom.functions import call_and_wait
+from caracara_archicad_mcp.tools.custom.functions import call_and_wait, call_and_wait_result
 
 TOOL_NAME = "archicad_capture_view"
 # Larger images are scaled down by the model anyway; this keeps previews within that.
 MAX_PREVIEW_SIZE = 1568
 # Window captures follow the screen size; refuse ones too large to send.
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
-
-_images_allowed: bool | None = None
-
-
-def set_images_allowed(allowed: bool | None) -> None:
-    """Allow or forbid sending images (None falls back to the environment)."""
-    global _images_allowed
-    _images_allowed = allowed
-
-
-def images_allowed() -> bool:
-    if _images_allowed is not None:
-        return _images_allowed
-    value = os.environ.get("CARACARA_MCP_ALLOW_IMAGES") or os.environ.get("TAPIR_MCP_ALLOW_IMAGES") or ""
-    return value.strip().lower() in ("1", "true", "yes")
 
 
 def _checked(data: bytes) -> bytes:
@@ -82,16 +67,21 @@ async def _element_image(port: int, element: Any, view: str, size: int) -> bytes
     if elem_id is None:
         raise ToolError("'element' must be an element identifier such as {'guid': '...'}.")
     side = max(64, min(size, MAX_PREVIEW_SIZE))
-    result = await call_and_wait(
+    response = await call_and_wait_result(
         "elements_get_element_preview_image",
         {
             "port": port,
             "params": {"elementId": elem_id, "imageType": view, "format": "jpg", "width": side, "height": side},
         },
     )
-    if not isinstance(result, dict) or not result.get("previewImage"):
-        raise ToolError(f"Archicad returned no preview image: {result}")
-    return _checked(base64.b64decode(result["previewImage"]))
+    # The command's image field is moved out of the JSON into image content.
+    images = [block for block in response.content if isinstance(block, ImageContent)]
+    if images:
+        return _checked(base64.b64decode(images[0].data))
+    preview = (response.structured_content or {}).get("previewImage")
+    if not preview:
+        raise ToolError(f"Archicad returned no preview image: {response.structured_content}")
+    return _checked(base64.b64decode(preview))
 
 
 @mcp.tool(

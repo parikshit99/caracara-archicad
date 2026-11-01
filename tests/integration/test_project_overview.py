@@ -47,30 +47,26 @@ def project(fake_archicad):
         },
     )
     fake_archicad.on_tapir_command(
-        "GetLayers",
+        "API.GetLayerAttributes",
         {
-            "layers": [
+            "attributes": [
                 {
-                    "attributeId": {"guid": LAYER_GUIDS[0]},
-                    "index": 1,
-                    "name": "Walls",
-                    "isHidden": False,
-                    "isLocked": False,
-                },
-                {
-                    "attributeId": {"guid": LAYER_GUIDS[1]},
-                    "index": 2,
-                    "name": "Furniture",
-                    "isHidden": True,
-                    "isLocked": False,
-                },
-                {
-                    "attributeId": {"guid": LAYER_GUIDS[2]},
-                    "index": 3,
-                    "name": "Site",
-                    "isHidden": False,
-                    "isLocked": True,
-                },
+                    "layerAttribute": {
+                        "attributeId": {"guid": guid},
+                        "name": name,
+                        "intersectionGroupNr": 0,
+                        "isHidden": hidden,
+                        "isLocked": locked,
+                        "isWireframe": False,
+                    }
+                }
+                for guid, name, hidden, locked in zip(
+                    LAYER_GUIDS,
+                    ["Walls", "Furniture", "Site"],
+                    [False, True, False],
+                    [False, False, True],
+                    strict=True,
+                )
             ]
         },
     )

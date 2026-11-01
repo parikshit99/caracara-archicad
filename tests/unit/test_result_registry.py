@@ -4,10 +4,10 @@ import time
 
 import pytest
 from mcp.server.mcpserver.exceptions import ToolError
+from payloads import archicad_call_tool
 from pydantic import BaseModel, Field
 
 from caracara_archicad_mcp.result_registry import STORAGE_SETS, ResultRegistry
-from caracara_archicad_mcp.tools.custom.functions import archicad_call_tool
 from caracara_archicad_mcp.tools.overrides import DEFAULT_HIGHLIGHT_COLOR
 
 

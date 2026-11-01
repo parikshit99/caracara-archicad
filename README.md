@@ -136,7 +136,7 @@ The server is configured with CLI flags or environment variables. Each variable 
 | `--job-ttl-seconds` | `CARACARA_MCP_JOB_TTL_SECONDS` | `86400` | Seconds to keep finished jobs; `0` disables time-based expiry |
 | `--max-completed-jobs` | `CARACARA_MCP_MAX_COMPLETED_JOBS` | `128` | Maximum number of finished jobs to keep |
 | `--read-only` | `CARACARA_MCP_READ_ONLY` | off | Refuse every command that could change the project, files or Teamwork state; reading, highlighting, window pictures and dry runs still work |
-| `--allow-images` | `CARACARA_MCP_ALLOW_IMAGES` | off | Offer `archicad_capture_view`, which uploads pictures of the design to the AI provider. Pictures help the AI check its work but use more tokens and context. When off, the tool is not offered at all |
+| `--allow-images` | `CARACARA_MCP_ALLOW_IMAGES` | off | Offer `archicad_capture_view`, which uploads pictures of the design to the AI provider. Pictures help the AI check its work but use more tokens and context. When off, the tool is not offered at all, and the preview and view image commands return their pictures as base64 text in the JSON instead of image content |
 
 Paths Archicad only reads (opening a project, importing BCF) are not confined, so they can reach your existing files.
 

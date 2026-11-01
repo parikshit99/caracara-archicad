@@ -43,6 +43,8 @@ class ApiSourceConfig:
     group_mapping: dict[str, str]
     prefix_to_strip: str = ""
     paginated_commands: dict[str, str] = field(default_factory=dict)
+    image_fields: dict[str, str] = field(default_factory=dict)
+    image_lists: dict[str, str] = field(default_factory=dict)
     commands_to_exclude: set[str] = field(default_factory=set)
 
 
@@ -58,7 +60,7 @@ TAPIR_CONFIG = ApiSourceConfig(
         "Element Modification Commands": "elements",
         "Element Commands": "elements",
         "Element grouping Commands": "grouping",
-        "Solid Element Operation Commands": "solid_ops_",
+        "Solid Element Operation Commands": "solid_ops",
         # Domain specifics
         "MEP Commands": "mep",
         "Keynote Commands": "keynotes",
@@ -73,6 +75,8 @@ TAPIR_CONFIG = ApiSourceConfig(
         # Project & App structure
         "Application Commands": "app",
         "Project Commands": "project",
+        "Project Data Commands": "project_data",
+        "Analytical Commands": "analytical",
         "Navigator Commands": "navigator",
         "Issue Management Commands": "issues",
         "Revision Management Commands": "revisions",
@@ -80,18 +84,30 @@ TAPIR_CONFIG = ApiSourceConfig(
         "Script UI Commands": "dev",
     },
     commands_to_exclude={
-        "GetProjectInfo",  # discovery_list_active_archicads covers this
-        "GetArchicadLocation",  # discovery_list_active_archicads covers this
-        "QuitArchicad",  # AI probably shouldn't quit
-        "GenerateDocumentation",  # command only for internal use
-        "ShowScriptUI",  # used in apps
-        "GetScriptUIResult",  # used in apps
-        "DeleteAttributes",  # official has a simpler interface for the same functionality (works for MEP systems)
-        "DeleteNavigatorItems",  # same parameters as the Official command
-        "MoveNavigatorItem",  # same parameters as the Official command
-        "GetGraphicalOverrideRules",  # Duplicate command in 1.7.2
-        "CreateGraphicalOverrideRule",  # Duplicate command in 1.7.2
-        "CreateGraphicalOverrideCombination",  # Duplicate command in 1.7.2
+        "QuitArchicad",  # Can lose unsaved work; easy to quit manually
+        "CloseProject",  # Can lose unsaved work; easy to close manually
+        "NewProject",  # Discards unsaved work; use the application UI
+        "GenerateDocumentation",  # Internal use only
+        "ShowScriptUI",  # Application UI workflow
+        "GetScriptUIResult",  # Companion to ShowScriptUI
+        "DeleteAttributes",  # Official deletes by GUID without a type argument
+        "DeleteAttributeFolders",  # Same deletion; prefer Official
+        "RenameAttributeFolders",  # Same rename; prefer Official
+        "DeleteNavigatorItems",  # Same contract; prefer Official
+        "MoveNavigatorItem",  # Same operation; prefer Official
+        "CloneProjectMapItemToViewMap",  # Only adds batching; prefer Official
+        "CreateLayoutSubset",  # Only adds batching/defaults; prefer Official
+        "CreateViewMapFolder",  # Official also supports sibling placement
+        "GetGraphicalOverrideRules",  # Graphic API also returns styles
+        "CreateGraphicalOverrideRule",  # Covered by Graphic create/modify commands
+        "CreateGraphicalOverrideCombination",  # Covered by Graphic combinations
+        "GetComposites",  # Official also returns total thickness; index available elsewhere
+        "GetLayers",  # Same layer state; index available elsewhere
+        "GetLines",  # Same line details; index available elsewhere
+        "GetPenTables",  # Pen data, index and active tables available elsewhere
+        "GetZoneCategories",  # Same category details; index available elsewhere
+        "GetCurrentRevisionChangesOfLayouts",  # Malformed revision response schema
+        "GetRevisionChangesOfElements",  # Bad response schema and element GUID lookup
     },
     paginated_commands={
         "GetAllElements": "elements",
@@ -103,7 +119,11 @@ TAPIR_CONFIG = ApiSourceConfig(
         "GetElementsByIFCIds": "elementsByIFCIds",
         "GetMEPElements": "elements",
         "GetAvailableLibraryParts": "libraryParts",
-        "GetDetailsOfElements": "detailsOfElements",
+        "GetPropertyValuesOfElements": "propertyValuesForElements",
+        "GetIFCPropertiesOfElements": "elementIFCProperties",
+        "GetRelationsOfElements": "relations",
+        "GetMEPRoutingElements": "routingElements",
+        "GetCollisions": "collisions",
         "GetGDLParametersOfElements": "gdlParametersOfElements",
         "Get3DGeometryOfElements": "geometries3D",
         "GetQuantitiesOfElements": "quantitiesOfElements",
@@ -111,11 +131,39 @@ TAPIR_CONFIG = ApiSourceConfig(
         "GetGraphicOverrideCombinations": "graphicOverrideCombinations",
         "GetGraphicOverrideRuleGroups": "graphicOverrideRuleGroups",
         "GetGraphicOverrideRules": "graphicOverrideRules",
-        "GetGraphicalOverrideRules": "rules",
         "GetElectricalCircuits": "electricalCircuits",
         "GetElectricalDevices": "electricalDevices",
         "GetElectricalPanels": "electricalPanels",
         "GetMEPSystemGroups": "systemGroups",
+        "GetDetailsOfElements": "detailsOfElements",
+        "GetHotlinks": "hotlinks",
+        "GetMarkerParametersOfElements": "markerParametersOfElements",
+        "GetSubelementsOfHierarchicalElements": "subelements",
+        "GetAllFavorites": "favorites",
+        "GetCategoryValuesOfElements": "categoryValuesOfElements",
+        "GetDatabases": "databases",
+        "GetElementSetsOfElements": "elementSetsOfElements",
+        "GetElementsInDrawOrder": "elements",
+        "GetFavoriteSettings": "favoriteSettings",
+        "GetGraphicOverrideRulesByName": "graphicOverrideRules",
+        "GetHotlinkProxyElementTable": "proxyElementTables",
+        "GetIFCAttributesOfElements": "elementIFCAttributes",
+        "GetLinksOfElements": "linksOfElements",
+        "GetOpeningDetails": "openings",
+        "GetOpeningFloorPlanParameters": "openings",
+        "GetProjectData": "values",
+        "GetProjectDataKeys": "keys",
+        "GetPropertyDefinitionsOfAttributes": "propertyDefinitionsOfAttributes",
+        "GetSurfaceQuantitiesOfElements": "surfaceQuantitiesOfElements",
+        "GetUserDataOfGroups": "userDataOfGroups",
+        "GetZoneReductions": "reductionsOfZones",
+        "TriangulatePolygonsOfElements": "triangulations",
+    },
+    image_fields={
+        "GetElementPreviewImage": "previewImage",
+        "GetFavoritePreviewImage": "previewImage",
+        "GetRoomImage": "roomImage",
+        "GetCurrentViewImage": "image",
     },
 )
 
@@ -150,26 +198,26 @@ OFFICIAL_CONFIG = ApiSourceConfig(
         "SetClassificationsOfElements",  # Tapir command works on subelements
         "SetPropertyValuesOfElements",  # Tapir command works on subelements
         "GetPropertyValuesOfElements",  # Tapir command works on subelements
-        "GetAttributesByType",  # Tapir command returns additional index and name
+        "GetAttributesByType",  # Tapir adds names, indices and MEP/operation types
         "IsAlive",  # not useful as tool
-        "GetProductInfo",  # discovery_list_active_archicads covers this
         "ExecuteAddOnCommand",  # we handle it with namespaces
-        "GetBuildingMaterialAttributes",  # Tapir returns index
-        "GetCompositeAttributes",  # Tapir returns index
-        "GetFillAttributes",  # Tapir returns index
-        "GetLayerAttributes",  # Tapir returns index
-        "GetLayerCombinationAttributes",  # Tapir returns index
-        "GetLineAttributes",  # Tapir returns index
-        "GetPenTableAttributes",  # Tapir returns index
-        "GetProfileAttributes",  # Tapir returns index
-        "GetSurfaceAttributes",  # Tapir returns index
-        "GetZoneCategoryAttributes",  # Tapir returns index
-        "RenameNavigatorItem",  # Tapir command takes flat parameters instead of a union
-        "GetNavigatorItemTree",  # Tapir returns additional fields
+        "CreateAttributeFolders",  # Tapir accepts MEP/operation folder types
+        "MoveAttributesAndFolders",  # Tapir returns per-item move results
+        "GetBuildingMaterialAttributes",  # Tapir adds manufacturer, fill and display details
+        "GetLayerCombinationAttributes",  # Tapir returns combination-specific layer states
+        "GetProfileAttributes",  # Tapir adds skins, edges and outlines
+        "GetSurfaceAttributes",  # Tapir adds texture transforms and alpha settings
+        "RenameNavigatorItem",  # Tapir also supports customName
+        "GetNavigatorItemTree",  # Tapir adds source links and custom-name/ID flags
     },
     paginated_commands={
         "GetElementsByClassification": "elements",
         "GetAllPropertyIds": "propertyIds",
         "GetAllPropertyNames": "properties",
+        "GetDetailsOfProperties": "propertyDefinitions",
+        "GetPropertyValuesOfElementComponents": "propertyValuesForElementComponents",
+    },
+    image_lists={
+        "GetProfileAttributePreview": "previewImages",
     },
 )
