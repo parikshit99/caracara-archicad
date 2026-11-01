@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security problem privately
+    url: https://github.com/parikshit99/Caracara-Archicad-MCP/security/advisories/new
+    about: For anything that breaks read-only mode, file confinement or privacy. Not a public issue.

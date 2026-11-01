@@ -21,6 +21,7 @@
   "icon": "./icon.png",
   "documentationUrl": "https://github.com/parikshit99/Caracara-Archicad-MCP#readme",
   "supportUrl": "https://github.com/parikshit99/Caracara-Archicad-MCP/issues",
+  "privacyPolicyUrl": "https://github.com/parikshit99/Caracara-Archicad-MCP/blob/master/PRIVACY.md",
   "mcpServers": {
     "caracara-archicad": {
       "command": "uv",

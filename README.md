@@ -1,6 +1,6 @@
 # Caracara Archicad MCP Server
 
-A personal, experimental fork of [tapir-archicad-MCP](https://github.com/SzamosiMate/tapir-archicad-MCP) for custom Archicad automation workflows.
+A community fork of [tapir-archicad-MCP](https://github.com/SzamosiMate/tapir-archicad-MCP) that lets AI agents work with Archicad with safety and privacy first: changes are checked before they are made, a read-only mode lets the AI look without touching, and nothing leaves your computer except what the tools return to your AI client.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CI](https://github.com/parikshit99/Caracara-Archicad-MCP/actions/workflows/test.yml/badge.svg?branch=master)](https://github.com/parikshit99/Caracara-Archicad-MCP/actions/workflows/test.yml)
@@ -8,7 +8,7 @@ A personal, experimental fork of [tapir-archicad-MCP](https://github.com/Szamosi
 
 **Website:** https://parikshit99.github.io/Caracara-Archicad-MCP/
 
-> **Note:** This is a downstream, fast-moving fork of [SzamosiMate/tapir-archicad-MCP](https://github.com/SzamosiMate/tapir-archicad-MCP) maintained for custom workflows and experimental Archicad tool bindings. All core credit belongs to Máté Szamosi. If you need the stable upstream release, visit the original repository.
+> **Note:** Caracara builds on [SzamosiMate/tapir-archicad-MCP](https://github.com/SzamosiMate/tapir-archicad-MCP) by Máté Szamosi and merges its releases; the core credit is his. Caracara is young: [Known issues](docs/known-issues.md) lists what has been tested on a live Archicad and what has not. Work on a copy of any project you care about.
 
 The server is a bridge that lets AI agents and applications (Claude Desktop, Claude Code, Gemini CLI and other MCP clients) work with running Archicad instances. It wraps both the community **Tapir API** and the **official Archicad JSON API**: **458 commands** (404 Tapir + 54 official), generated from the schemas published by [`multiconn_archicad`](https://github.com/SzamosiMate/multiconn_archicad). A few Tapir commands are left out on purpose, listed with reasons in `scripts/generator_config.py`: `QuitArchicad`, which can lose unsaved work (`CloseProject` and `NewProject` are available but refused unless you allow them, see `--allow-session-commands`), ones the official API already covers (for example `DeleteAttributes`, `GetLayers`, `GetLines`, `GetPenTables`), and two revision commands whose published schemas are malformed.
 
@@ -241,17 +241,25 @@ Every change, by a person or an AI agent, follows the rules in [REVIEW.md](REVIE
 We are deeply grateful to Máté and the [Enzyme APD](https://github.com/ENZYME-APD/tapir-archicad-automation) team for developing the Archicad automation ecosystem and making it open-source.
 
 **Why this fork?**
-This fork is maintained purely as a personal sandbox and experimental testbed for custom workflows. It is not intended to compete with or replace the original project. For production use and the official, stable release, please use the upstream [SzamosiMate/tapir-archicad-MCP](https://github.com/SzamosiMate/tapir-archicad-MCP) repository.
+Caracara is maintained for people who use AI agents on real, often confidential, projects. It adds the checks, limits and privacy rules listed in [What This Fork Adds](#what-this-fork-adds) and keeps close to upstream, merging each upstream release. It is not a replacement for the original project, which stays the place for its own features and direction.
 
 *For issues or questions about this fork, please use the [Caracara issue tracker](https://github.com/parikshit99/Caracara-Archicad-MCP/issues) rather than the upstream one.*
 
 The Caracara icon is this project's own artwork, a crested caracara; the full-size version is in [`branding/`](branding/).
 
+Archicad is a registered trademark of Graphisoft SE. Caracara is an independent community project, not affiliated with or endorsed by Graphisoft or Anthropic.
+
 ---
 
 ## Contributing
 
-Issues and pull requests are welcome on the [Caracara repository](https://github.com/parikshit99/Caracara-Archicad-MCP). Please run the checks in [Development](#development) before opening a pull request. [ROADMAP.md](ROADMAP.md) lists what we plan to work on, [docs/decisions.md](docs/decisions.md) why Caracara is built the way it is, and [docs/known-issues.md](docs/known-issues.md) what has been tested live and what is known to be limited.
+Issues and pull requests are welcome on the [Caracara repository](https://github.com/parikshit99/Caracara-Archicad-MCP). Please do not attach project files, element lists or screenshots of client work to an issue. Report security problems privately, as [SECURITY.md](SECURITY.md) describes. Please run the checks in [Development](#development) before opening a pull request. [ROADMAP.md](ROADMAP.md) lists what we plan to work on, [docs/decisions.md](docs/decisions.md) why Caracara is built the way it is, and [docs/known-issues.md](docs/known-issues.md) what has been tested live and what is known to be limited.
+
+---
+
+## Privacy
+
+Caracara collects nothing and sends nothing anywhere itself. See [PRIVACY.md](PRIVACY.md) for what reaches your AI provider and how to limit it.
 
 ---
 

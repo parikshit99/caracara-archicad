@@ -94,6 +94,11 @@ Check each of these after every upstream merge.
   stay in the server behind a `setId`, so large selections do not fill the conversation.
   Sets are snapshots and do not follow later changes in Archicad; results report the set's age
   and how many of its elements no longer exist.
+- **One privacy page and private security reports** (2026-11-01, Caracara). PRIVACY.md says in
+  one place what reaches the AI provider, what stays on the computer (including the local log
+  file) and which connections are made; the plugin's directory listing links to it. Issues are
+  public, so the bug form asks for no project data, and security problems go to GitHub's private
+  reporting (SECURITY.md).
 
 ### Not doing
 

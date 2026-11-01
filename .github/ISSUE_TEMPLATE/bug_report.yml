@@ -1,0 +1,73 @@
+name: Bug report
+description: Something Caracara did wrong, or a command that failed.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Keep client data out of this issue.** It is public. Do not attach project files, element
+        lists, property values, project names or screenshots of client work. If you can, reproduce
+        the problem on an empty or sample project and describe that instead.
+
+        Security problems (read-only mode letting a change through, a file written outside the
+        output folder, data sent somewhere it should not go) go to the private report described in
+        [SECURITY.md](https://github.com/parikshit99/Caracara-Archicad-MCP/blob/master/SECURITY.md),
+        not here.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you asked the AI to do, what it did, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: On an empty or sample project, if you can.
+      placeholder: |
+        1. Draw two walls on story 0
+        2. Ask the AI to move them 1 m east
+        3. ...
+  - type: input
+    id: caracara-version
+    attributes:
+      label: Caracara version
+      description: Ask the AI "which Caracara version is installed?", or look in your client's extension settings.
+      placeholder: 2026.11.0
+    validations:
+      required: true
+  - type: input
+    id: archicad-version
+    attributes:
+      label: Archicad and Tapir versions
+      placeholder: Archicad 30 (build ...), Tapir 1.7.3
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How Caracara is installed
+      options:
+        - .mcpb bundle in Claude Desktop
+        - Plugin in Claude Code
+        - Plugin in Cowork
+        - Manual configuration (uvx or a clone)
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: client
+    attributes:
+      label: Operating system and AI client
+      placeholder: Windows 11, Claude Desktop 1.2.3
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Error message or log lines
+      description: |
+        The error the AI showed, or the lines around it from `~/.tapir_mcp/logs/tapir_mcp_server.log`.
+        Read them first and remove anything from your project.
+      render: text

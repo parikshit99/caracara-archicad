@@ -46,6 +46,15 @@ def test_plugin_starts_the_server_like_the_bundle():
     assert plugin["env"] == bundle["env"]
 
 
+def test_plugin_privacy_policy_is_a_page_in_this_repository():
+    """The directory listing links to it; a renamed or moved file would leave a dead link there."""
+    url = _json(".claude-plugin/plugin.json")["privacyPolicyUrl"]
+    prefix = "https://github.com/parikshit99/Caracara-Archicad-MCP/blob/master/"
+
+    assert url.startswith(prefix)
+    assert (ROOT / url.removeprefix(prefix)).is_file()
+
+
 def test_skill_names_only_tools_the_server_has():
     register_all_tools()
     tools = {tool.name for tool in mcp._tool_manager.list_tools()} | {CAPTURE_TOOL}
