@@ -42,6 +42,16 @@ def test_call_tool_is_write_delete():
     assert annotations.open_world_hint is True
 
 
+def test_build_tool_adds_without_destroying():
+    register_all_tools()
+    annotations = _tools_by_name()["archicad_build"].annotations
+    assert annotations is not None
+    assert annotations.read_only_hint is False
+    assert annotations.destructive_hint is False
+    assert annotations.idempotent_hint is False
+    assert annotations.open_world_hint is True
+
+
 def test_manifest_lists_every_tool():
     """REVIEW.md R21: the bundle's tool list, shown to users before they install, matches the server."""
     register_all_tools()

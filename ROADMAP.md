@@ -37,6 +37,11 @@ against a live Archicad and is built only if the check shows a problem.
 
 ## Bigger features to decide on
 
+- **Build from a picture or drawing.** A guided workflow on top of `archicad_build`: the AI
+  reads the reference into a table of walls, openings and levels, marks which values it measured
+  and which it assumed, gets one known dimension from the user, builds after a dry run, then
+  compares a picture of the result with the reference. Plans and dimensioned sketches first;
+  photos give a massing model at best.
 - **List Caracara in Anthropic's extension directory**, so Claude Desktop keeps it up to date
   instead of people reinstalling the `.mcpb` by hand.
 - **Help installing Tapir.** A command the user runs by hand that puts a pinned Tapir release

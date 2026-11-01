@@ -38,6 +38,9 @@ Problems the live test found, all fixed since:
   elements, and whether Archicad stops responding meanwhile.
 - **Commands outside `archicad_query` and `archicad_mutate`.** Most of the 458 commands are
   generated from their published schemas and validated, but have not each been run live.
+- **`archicad_build`.** Written and tested against the create commands' schemas, not yet run on
+  a live Archicad: how doors are placed along their wall, and which tool defaults fill the
+  fields a build leaves out.
 - **Session commands.** `CloseProject` and `NewProject` behind `--allow-session-commands`.
 
 ## Known limits
