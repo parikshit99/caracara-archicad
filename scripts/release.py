@@ -9,6 +9,7 @@ import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+VERSIONED_MANIFESTS = (ROOT / "manifest.json", ROOT / ".claude-plugin" / "plugin.json")
 
 
 def run(*args, capture=False):
@@ -31,21 +32,20 @@ def check(tag=None):
     version = project()["version"]
     if tag and tag != f"v{version}":
         raise ValueError(f"Tag {tag} does not match package version v{version}.")
-    manifest = ROOT / "manifest.json"
-    if manifest.exists() and json.loads(manifest.read_text(encoding="utf-8"))["version"] != version:
-        raise ValueError("Python package and MCPB manifest versions differ.")
+    for manifest in VERSIONED_MANIFESTS:
+        if manifest.exists() and json.loads(manifest.read_text(encoding="utf-8"))["version"] != version:
+            raise ValueError(f"Python package and {manifest.name} versions differ.")
     run("uv", "lock", "--check")
 
 
 def bump(version):
     paths = [ROOT / "pyproject.toml", ROOT / "uv.lock"]
-    manifest = ROOT / "manifest.json"
-    if manifest.exists():
-        paths.append(manifest)
+    manifests = [manifest for manifest in VERSIONED_MANIFESTS if manifest.exists()]
+    paths.extend(manifests)
     original = {p: p.read_bytes() for p in paths}
     try:
         run("uv", "version", version, "--frozen")
-        if manifest.exists():
+        for manifest in manifests:
             data = json.loads(manifest.read_text(encoding="utf-8"))
             data["version"] = project()["version"]
             manifest.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
