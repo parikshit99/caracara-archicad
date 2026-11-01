@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "caracara-archicad-mcp"
-version = "2026.11.0"
+version = "2026.11.1"
 description = "A personal fork of tapir-archicad-mcp for custom workflows and experimental Archicad tool bindings."
 readme = "README.md"
 authors = [
