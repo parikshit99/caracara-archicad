@@ -3,6 +3,7 @@ from pathlib import Path
 
 from caracara_archicad_mcp.app import mcp
 from caracara_archicad_mcp.tools.custom import functions  # noqa: F401  registers the four MCP tools
+from caracara_archicad_mcp.tools.custom.build import ELEMENT_COMMANDS
 from caracara_archicad_mcp.tools.custom.capture import TOOL_NAME as CAPTURE_TOOL
 from caracara_archicad_mcp.tools.registration import register_all_tools
 
@@ -50,6 +51,13 @@ def test_build_tool_adds_without_destroying():
     assert annotations.destructive_hint is False
     assert annotations.idempotent_hint is False
     assert annotations.open_world_hint is True
+
+
+def test_call_tool_points_to_the_build_tool_for_every_type_it_builds():
+    description = _tools_by_name()["archicad_call_tool"].description
+    assert "archicad_build" in description
+    for element_type in ELEMENT_COMMANDS:
+        assert element_type.lower() in description, element_type
 
 
 def test_manifest_lists_every_tool():
