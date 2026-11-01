@@ -37,8 +37,10 @@ against a live Archicad and is built only if the check shows a problem.
 
 ## Bigger features to decide on
 
-- **List Caracara in Anthropic's extension directory**, so Claude Desktop keeps it up to date
-  instead of people reinstalling the `.mcpb` by hand.
+- **List the Caracara plugin in Anthropic's directory**, so Claude Code and Cowork install and
+  update it. The directory no longer takes `.mcpb` bundles; the plugin is in
+  `.claude-plugin/plugin.json`, and the maintainer submits it at claude.ai/directory/manage.
+  Ordinary Claude Desktop chats skip a plugin's local server, so they keep the `.mcpb`.
 - **Help installing Tapir.** A command the user runs by hand that puts a pinned Tapir release
   into Archicad's Add-Ons folder, checked against its sha256, without replacing an existing one.
   It downloads from GitHub, so it needs the maintainer's agreement (R13), and it would not be a

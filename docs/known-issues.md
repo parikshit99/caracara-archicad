@@ -39,6 +39,8 @@ Problems the live test found, all fixed since:
 - **Commands outside `archicad_query` and `archicad_mutate`.** Most of the 458 commands are
   generated from their published schemas and validated, but have not each been run live.
 - **Session commands.** `CloseProject` and `NewProject` behind `--allow-session-commands`.
+- **The Claude plugin.** It passes `claude plugin validate`, and Claude Code on Linux starts its
+  server; it has not been run with Archicad, on Windows, or in Cowork.
 
 ## Known limits
 

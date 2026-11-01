@@ -99,5 +99,13 @@ Check each of these after every upstream merge.
 - **Report the installed version** (2026-11-01, Caracara). The server tells clients its own version,
   and `discovery_list_active_archicads` returns it as `caracaraVersion`.
 - **No built-in update check** (2026-11-01, Caracara). It would make every user's computer call
-  GitHub (R13). A hand-installed bundle is updated by downloading it again; listing Caracara in
-  Anthropic's extension directory is on the roadmap.
+  GitHub (R13). A hand-installed bundle is updated by downloading it again; listing the plugin in
+  Anthropic's directory is on the roadmap.
+- **A Claude plugin beside the `.mcpb`** (2026-11-01, Caracara). Anthropic's directory no longer
+  takes `.mcpb` bundles, only plugins, so the repository is also a plugin: `plugin.json` starts
+  the same server with the same settings and adds the `working-in-archicad` skill. The server is
+  declared in `plugin.json`, not in a root `.mcp.json`, which Claude Code would also offer as a
+  project server to everyone who opens the repository. A plugin's local server runs in Claude
+  Code and Cowork but not in ordinary chats, so the `.mcpb` stays for Claude Desktop.
+  `scripts/release.py` gives both manifests the package version, and `tests/unit/test_plugin.py`
+  keeps the plugin's server, settings and skill in step with the bundle and the tools.

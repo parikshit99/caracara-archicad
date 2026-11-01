@@ -17,3 +17,5 @@ server/venv/
 .agents/
 site/
 branding/
+.claude-plugin/
+skills/

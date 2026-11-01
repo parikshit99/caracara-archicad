@@ -38,6 +38,8 @@ uv run --locked pytest tests --cov --cov-fail-under=85
 ```
 
 If you change `manifest.json`: `npx --yes @anthropic-ai/mcpb@2.1.2 validate manifest.json`.
+If you change `.claude-plugin/plugin.json` or `skills/`: `claude plugin validate .` (the warning
+about this CLAUDE.md is expected: it is for contributors, not for the plugin's users).
 After changing the `multiconn-archicad` pin: `uv run python scripts/generate_tools.py`.
 
 ## Upstream
