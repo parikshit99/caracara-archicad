@@ -183,6 +183,12 @@ Jobs remain available across HTTP client reconnects while the server is running,
 
 `archicad_query` and `archicad_mutate` default to port 19723, Archicad's first API port, when no `port` is given.
 
+### Guidance for the AI
+
+When a client connects, the server sends it short instructions ([`instructions.py`](src/caracara_archicad_mcp/instructions.py), about 220 words): start with discovery and the project overview, work with sets, get totals from `archicad_calculate`, dry-run every change and wait for the user's agreement, and keep project details private. Clients that support server instructions add them to the conversation.
+
+For more detailed guidance, add the [`working-in-archicad`](skills/working-in-archicad/SKILL.md) skill to your client: in claude.ai and Claude Desktop, zip the `working-in-archicad` folder and upload it in Claude's skills settings, or copy it into `~/.claude/skills/` (Claude Code). It only loads when the conversation is about Archicad, so it costs nothing otherwise.
+
 ---
 
 ## How It Works

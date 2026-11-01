@@ -99,6 +99,11 @@ Check each of these after every upstream merge.
   file) and which connections are made. Issues are
   public, so the bug form asks for no project data, and security problems go to GitHub's private
   reporting (SECURITY.md).
+- **Guidance in two sizes** (2026-11-01, maintainer). The server sends every client about 220
+  words of instructions (`instructions.py`): the order of calls, dry runs, totals from
+  `archicad_calculate`, privacy. They go into every conversation, so a test holds them to 250
+  words. The full guidance is the `working-in-archicad` skill, which users add themselves and
+  which loads only when needed. A test fails if either names a tool the server does not have.
 
 ### Not doing
 
@@ -112,6 +117,7 @@ Check each of these after every upstream merge.
   `.mcpb` bundles, only Claude plugins, and a plugin's local server runs in Claude Code and
   Cowork but not in ordinary Claude Desktop chats. A plugin version was built and merged, then
   withdrawn by the maintainer; Caracara ships as the `.mcpb` bundle and manual configuration.
+  Its skill was kept, on its own (see "Guidance in two sizes").
 
 ### Releases
 

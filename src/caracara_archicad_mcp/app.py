@@ -9,6 +9,7 @@ from multiconn_archicad import MultiConn
 from starlette.applications import Starlette
 
 from caracara_archicad_mcp.context import job_store_instance, mcp_instance, multi_conn_instance
+from caracara_archicad_mcp.instructions import SERVER_INSTRUCTIONS
 from caracara_archicad_mcp.jobs import JobSettings, JobStore
 
 log = logging.getLogger(__name__)
@@ -78,4 +79,9 @@ async def app_lifespan(server: MCPServer) -> AsyncIterator[None]:
         multi_conn_instance.clear()
 
 
-mcp = ArchicadMCPServer("Archicad Caracara MCP Server", version=CARACARA_VERSION, lifespan=app_lifespan)
+mcp = ArchicadMCPServer(
+    "Archicad Caracara MCP Server",
+    version=CARACARA_VERSION,
+    instructions=SERVER_INSTRUCTIONS,
+    lifespan=app_lifespan,
+)
