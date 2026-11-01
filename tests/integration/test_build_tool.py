@@ -6,7 +6,7 @@ import pytest
 from mcp.server.mcpserver.exceptions import ToolError
 from multiconn_archicad.errors import TapirCommandError
 
-from caracara_archicad_mcp import safety
+from caracara_archicad_mcp import settings
 from caracara_archicad_mcp.result_registry import ResultRegistry
 from caracara_archicad_mcp.tools.custom.build import archicad_build
 
@@ -16,10 +16,10 @@ GUIDS = [f"00000000-0000-0000-0000-0000000001{i:02d}" for i in range(20)]
 @pytest.fixture(autouse=True)
 def clean_state():
     ResultRegistry.clear()
-    safety.set_read_only(None)
+    settings.set_read_only(None)
     yield
     ResultRegistry.clear()
-    safety.set_read_only(None)
+    settings.set_read_only(None)
 
 
 @pytest.fixture
@@ -171,7 +171,7 @@ async def test_what_was_made_before_archicad_stopped_comes_back_as_a_set(archica
 
 @pytest.mark.asyncio
 async def test_read_only_mode_refuses_the_build_but_allows_the_dry_run(archicad):
-    safety.set_read_only(True)
+    settings.set_read_only(True)
 
     with pytest.raises(ToolError, match="read-only mode"):
         await archicad_build(ROOM, port=archicad.port)

@@ -7,9 +7,9 @@ command added by a future Tapir release is refused until it is reviewed here.
 
 from __future__ import annotations
 
-import os
-
 from mcp.server.mcpserver.exceptions import ToolError
+
+from caracara_archicad_mcp.settings import read_only, session_commands_allowed
 
 # Commands starting with these verbs only read the model.
 READ_ONLY_PREFIXES = ("Get", "Is", "Filter")
@@ -24,35 +24,6 @@ REVIEWED_COMMANDS = DISPLAY_ONLY_COMMANDS | WINDOW_IMAGE_COMMANDS
 # Commands that end the open project and discard whatever was not saved. Archicad cannot report unsaved
 # changes, so they stay refused until the user allows them.
 SESSION_COMMANDS = frozenset({"CloseProject", "NewProject"})
-
-_read_only: bool | None = None
-_session_commands_allowed: bool | None = None
-
-
-def set_read_only(enabled: bool | None) -> None:
-    """Turn read-only mode on or off (None falls back to the environment)."""
-    global _read_only
-    _read_only = enabled
-
-
-def read_only() -> bool:
-    if _read_only is not None:
-        return _read_only
-    value = os.environ.get("CARACARA_MCP_READ_ONLY") or os.environ.get("TAPIR_MCP_READ_ONLY") or ""
-    return value.strip().lower() in ("1", "true", "yes")
-
-
-def set_session_commands_allowed(allowed: bool | None) -> None:
-    """Allow or forbid the commands that close or replace the open project (None falls back to the environment)."""
-    global _session_commands_allowed
-    _session_commands_allowed = allowed
-
-
-def session_commands_allowed() -> bool:
-    if _session_commands_allowed is not None:
-        return _session_commands_allowed
-    value = os.environ.get("CARACARA_MCP_ALLOW_SESSION_COMMANDS") or ""
-    return value.strip().lower() in ("1", "true", "yes")
 
 
 def is_reading_command(command: str) -> bool:

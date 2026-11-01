@@ -124,7 +124,7 @@ Append `@v0.7.0` (or another tag) to the URL to pin a release.
 
 ## Configuration Options
 
-The server is configured with CLI flags or environment variables. Each variable is read as `CARACARA_MCP_<NAME>` first, then the legacy `TAPIR_MCP_<NAME>`. CLI flags override environment variables.
+The server is configured with CLI flags or environment variables. Each variable is read as `CARACARA_MCP_<NAME>` first, then the legacy `TAPIR_MCP_<NAME>`; an empty variable counts as unset. CLI flags override environment variables.
 
 | CLI Flag | Environment Variable | Default | Description |
 | :--- | :--- | :--- | :--- |

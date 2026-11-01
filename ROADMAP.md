@@ -28,8 +28,6 @@ against a live Archicad and is built only if the check shows a problem.
 - **Check `classified` queries for 2D elements.** `archicad_query(target="classified")` uses
   Archicad's official `GetElementsByClassification`. Official commands that list elements may
   return model elements only, leaving out labels, dimensions and markers.
-- **One place for settings.** Read-only mode, images and session commands each read their own
-  environment variable in their own module. Bring them together if more settings come.
 - **Ask the user directly before risky changes.** `confirm=true` relies on the AI asking the
   user. In clients that support MCP elicitation, the server could ask the user itself.
 

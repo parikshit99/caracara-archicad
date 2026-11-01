@@ -4,32 +4,17 @@ from __future__ import annotations
 
 import base64
 import json
-import os
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 from mcp.types import CallToolResult, ImageContent, TextContent
 from pydantic import JsonValue
 
+from caracara_archicad_mcp.settings import images_allowed
+
 if TYPE_CHECKING:
     # The tools package imports this module while it loads.
     from caracara_archicad_mcp.tools.tool_registry import ToolRegistryEntry
-
-
-_images_allowed: bool | None = None
-
-
-def set_images_allowed(allowed: bool | None) -> None:
-    """Allow or forbid sending images (None falls back to the environment)."""
-    global _images_allowed
-    _images_allowed = allowed
-
-
-def images_allowed() -> bool:
-    if _images_allowed is not None:
-        return _images_allowed
-    value = os.environ.get("CARACARA_MCP_ALLOW_IMAGES") or os.environ.get("TAPIR_MCP_ALLOW_IMAGES") or ""
-    return value.strip().lower() in ("1", "true", "yes")
 
 
 def _reference(number: int) -> str:

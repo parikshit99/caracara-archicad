@@ -29,6 +29,8 @@ from multiconn_archicad.models.tapir.commands import (
 )
 from multiconn_archicad.models.tapir.types import Method
 
+from caracara_archicad_mcp.settings import env
+
 DEFAULT_OUTPUT_ROOT = Path(tempfile.gettempdir()) / "caracara-archicad-mcp"
 
 _output_root: Path | None = None
@@ -61,7 +63,7 @@ def set_output_root(root: str | os.PathLike | None) -> None:
 def output_root() -> Path:
     root = _output_root
     if root is None:
-        env_root = os.environ.get("CARACARA_MCP_OUTPUT_ROOT") or os.environ.get("TAPIR_MCP_OUTPUT_ROOT")
+        env_root = env("OUTPUT_ROOT")
         root = Path(env_root).expanduser() if env_root else DEFAULT_OUTPUT_ROOT
     return root.resolve()
 

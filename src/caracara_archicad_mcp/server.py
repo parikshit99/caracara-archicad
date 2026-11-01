@@ -3,7 +3,6 @@ import contextlib
 import ipaddress
 import logging
 import math
-import os
 import sys
 from typing import Any
 
@@ -12,11 +11,16 @@ from mcp.server.mcpserver.exceptions import ToolError
 import caracara_archicad_mcp.model_configuration  # noqa: F401
 from caracara_archicad_mcp.app import mcp
 from caracara_archicad_mcp.file_paths import set_output_root
-from caracara_archicad_mcp.images import set_images_allowed
 from caracara_archicad_mcp.jobs import JobSettings
 from caracara_archicad_mcp.logging_config import setup_logging
 from caracara_archicad_mcp.middleware import BearerTokenMiddleware
-from caracara_archicad_mcp.safety import set_read_only, set_session_commands_allowed
+from caracara_archicad_mcp.settings import (
+    env,
+    env_flag,
+    set_images_allowed,
+    set_read_only,
+    set_session_commands_allowed,
+)
 from caracara_archicad_mcp.tools.custom.capture import TOOL_NAME as CAPTURE_TOOL
 
 setup_logging()
@@ -45,10 +49,6 @@ def _positive_int(value: str) -> int:
     return number
 
 
-def _env(name: str, default: Any = None) -> Any:
-    return os.environ.get(f"CARACARA_MCP_{name}", os.environ.get(f"TAPIR_MCP_{name}", default))
-
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the Archicad Caracara MCP server.")
     parser.add_argument(
@@ -59,75 +59,75 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--host",
-        default=_env("HOST", "127.0.0.1"),
+        default=env("HOST", "127.0.0.1"),
         help="Host to bind for HTTP-based transports. Must be a loopback address unless --allow-remote is set.",
     )
     parser.add_argument(
         "--allow-remote",
         action="store_true",
-        default=str(_env("ALLOW_REMOTE", "")).lower() in ("1", "true", "yes"),
+        default=env_flag("ALLOW_REMOTE"),
         help="Allow binding a non-loopback host. Requires --token.",
     )
     parser.add_argument(
         "--port",
         type=int,
-        default=int(_env("PORT", "8000")),
+        default=int(env("PORT", "8000")),
         help="Port to bind for HTTP-based transports.",
     )
     parser.add_argument(
         "--streamable-http-path",
-        default=_env("STREAMABLE_HTTP_PATH", "/mcp"),
+        default=env("STREAMABLE_HTTP_PATH", "/mcp"),
         help="HTTP path for the streamable-http transport.",
     )
     parser.add_argument(
         "--mount-path",
-        default=_env("MOUNT_PATH", None),
+        default=env("MOUNT_PATH", None),
         help="Optional mount path for SSE transport.",
     )
     parser.add_argument(
         "--token",
-        default=_env("TOKEN", None),
+        default=env("TOKEN", None),
         help="Bearer token required for HTTP-based transports. Ignored for stdio.",
     )
     parser.add_argument(
         "--async-threshold-seconds",
         type=_positive_float,
-        default=_env("ASYNC_THRESHOLD_SECONDS", "45"),
+        default=env("ASYNC_THRESHOLD_SECONDS", "45"),
         help="Maximum execution/poll wait before returning a running JobHandle (default: 45 seconds).",
     )
     parser.add_argument(
         "--job-ttl-seconds",
         type=_nonnegative_float,
-        default=_env("JOB_TTL_SECONDS", "86400"),
+        default=env("JOB_TTL_SECONDS", "86400"),
         help="Completed-job and page lifetime after completion; 0 disables age expiry (default: 86400).",
     )
     parser.add_argument(
         "--max-completed-jobs",
         type=_positive_int,
-        default=_env("MAX_COMPLETED_JOBS", "128"),
+        default=env("MAX_COMPLETED_JOBS", "128"),
         help="Maximum retained completed/failed jobs; oldest are evicted with their pages (default: 128).",
     )
     parser.add_argument(
         "--output-root",
-        default=_env("OUTPUT_ROOT", None),
+        default=env("OUTPUT_ROOT", None),
         help="Directory that files written by Archicad commands are confined to (default: a temp subdirectory).",
     )
     parser.add_argument(
         "--read-only",
         action="store_true",
-        default=str(_env("READ_ONLY", "")).lower() in ("1", "true", "yes"),
+        default=env_flag("READ_ONLY"),
         help="Refuse every command that could change the project, files or Teamwork state; only reading is allowed.",
     )
     parser.add_argument(
         "--allow-images",
         action="store_true",
-        default=str(_env("ALLOW_IMAGES", "")).lower() in ("1", "true", "yes"),
+        default=env_flag("ALLOW_IMAGES"),
         help="Offer archicad_capture_view, which sends pictures of the design to the AI provider (off by default).",
     )
     parser.add_argument(
         "--allow-session-commands",
         action="store_true",
-        default=str(_env("ALLOW_SESSION_COMMANDS", "")).lower() in ("1", "true", "yes"),
+        default=env_flag("ALLOW_SESSION_COMMANDS"),
         help="Allow CloseProject and NewProject, which discard unsaved changes (off by default).",
     )
     return parser.parse_args()
