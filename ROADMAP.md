@@ -25,10 +25,6 @@ against a live Archicad and is built only if the check shows a problem.
 
 ## Small improvements
 
-- **A known-issues page.** What was tested live, on which Archicad and Tapir versions and on
-  which date, and what is known to break. Fill it from the live test results.
-- **Complete the tool list in `manifest.json`.** It lists only the low-level tools, not
-  `archicad_query`, `archicad_mutate`, `archicad_calculate` and the others.
 - **Give the weekly pre-release its own version.** It reports the version of the last stable
   release, because only its file name carries the build date.
 - **Check `classified` queries for 2D elements.** `archicad_query(target="classified")` uses

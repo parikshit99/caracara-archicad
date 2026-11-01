@@ -67,7 +67,7 @@ If your client supports [MCP Bundles](https://github.com/modelcontextprotocol/mc
 
 **Updating.** A bundle you installed from a file does not update itself. To update, download the stable link above again and open it with your client, then restart the client. To see which version you have, look at the extension in your client's settings (Claude Desktop: *Settings › Extensions*), or ask the AI which Caracara version is installed. The weekly pre-release reports the version of the last stable release it builds on.
 
-The bundle can modify the open project, export files, and send or receive Teamwork changes, so treat installing it like handing your client your Archicad seat.
+The bundle can modify the open project, export files, and send or receive Teamwork changes, so treat installing it like handing your client your Archicad seat. Work on a copy of a project you care about, and read [Known issues](docs/known-issues.md) first: what has been tested live, and what can go wrong.
 
 <details>
 <summary>If the bundle will not start</summary>
@@ -240,7 +240,7 @@ The Caracara icon is this project's own artwork, a crested caracara; the full-si
 
 ## Contributing
 
-Issues and pull requests are welcome on the [Caracara repository](https://github.com/parikshit99/Caracara-Archicad-MCP). Please run the checks in [Development](#development) before opening a pull request. [ROADMAP.md](ROADMAP.md) lists what we plan to work on, and [docs/decisions.md](docs/decisions.md) why Caracara is built the way it is.
+Issues and pull requests are welcome on the [Caracara repository](https://github.com/parikshit99/Caracara-Archicad-MCP). Please run the checks in [Development](#development) before opening a pull request. [ROADMAP.md](ROADMAP.md) lists what we plan to work on, [docs/decisions.md](docs/decisions.md) why Caracara is built the way it is, and [docs/known-issues.md](docs/known-issues.md) what has been tested live and what is known to be limited.
 
 ---
 
