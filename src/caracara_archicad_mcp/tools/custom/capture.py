@@ -12,7 +12,6 @@ read back and deleted at once. An element preview comes back from Archicad in me
 from __future__ import annotations
 
 import base64
-import os
 import uuid
 from pathlib import Path
 from typing import Any, Literal
@@ -23,6 +22,7 @@ from mcp.types import ImageContent, ToolAnnotations
 
 from caracara_archicad_mcp.app import mcp
 from caracara_archicad_mcp.file_paths import confine_path
+from caracara_archicad_mcp.images import images_allowed
 from caracara_archicad_mcp.tools.custom.element_sets import element_id
 from caracara_archicad_mcp.tools.custom.functions import call_and_wait, call_and_wait_result
 
@@ -31,21 +31,6 @@ TOOL_NAME = "archicad_capture_view"
 MAX_PREVIEW_SIZE = 1568
 # Window captures follow the screen size; refuse ones too large to send.
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
-
-_images_allowed: bool | None = None
-
-
-def set_images_allowed(allowed: bool | None) -> None:
-    """Allow or forbid sending images (None falls back to the environment)."""
-    global _images_allowed
-    _images_allowed = allowed
-
-
-def images_allowed() -> bool:
-    if _images_allowed is not None:
-        return _images_allowed
-    value = os.environ.get("CARACARA_MCP_ALLOW_IMAGES") or os.environ.get("TAPIR_MCP_ALLOW_IMAGES") or ""
-    return value.strip().lower() in ("1", "true", "yes")
 
 
 def _checked(data: bytes) -> bytes:

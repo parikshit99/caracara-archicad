@@ -4,7 +4,7 @@ import json
 import pytest
 from mcp.types import CallToolResult
 
-from caracara_archicad_mcp.images import to_tool_result
+from caracara_archicad_mcp.images import set_images_allowed, to_tool_result
 from caracara_archicad_mcp.tools.custom.functions import archicad_call_tool, archicad_get_job
 from caracara_archicad_mcp.tools.tool_registry import (
     TOOL_CALLABLE_REGISTRY,
@@ -23,6 +23,15 @@ PNG_B64 = base64.b64encode(
 JPG_B64 = base64.b64encode(b"\xff\xd8\xff\xe0" + b"\x00" * 16).decode()
 PREVIEW_ARGS = {"port": 19723, "params": {"elementId": {"guid": "00000000-0000-0000-0000-000000000001"}}}
 pytestmark = pytest.mark.asyncio
+
+
+@pytest.fixture(autouse=True)
+def images_on(monkeypatch):
+    monkeypatch.delenv("CARACARA_MCP_ALLOW_IMAGES", raising=False)
+    monkeypatch.delenv("TAPIR_MCP_ALLOW_IMAGES", raising=False)
+    set_images_allowed(True)
+    yield
+    set_images_allowed(None)
 
 
 @pytest.fixture
@@ -177,3 +186,13 @@ async def test_failed_image_job_stays_a_plain_response(fake_archicad):
     assert isinstance(result, CallToolResult)
     assert result.structured_content["status"] == "failed"
     assert "error" in result.structured_content
+
+
+async def test_images_stay_in_the_json_unless_allowed(fake_archicad, snapshot_command):
+    set_images_allowed(None)
+    fake_archicad.on_tapir_command("GetElementPreviewImage", {"previewImage": PNG_B64})
+
+    result = await archicad_call_tool("elements_get_element_preview_image", PREVIEW_ARGS)
+
+    assert result.structured_content["previewImage"] == PNG_B64
+    assert len(result.content) == 1

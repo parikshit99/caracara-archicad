@@ -11,6 +11,7 @@ import pytest
 from mcp.server.mcpserver.exceptions import ToolError
 
 from caracara_archicad_mcp import file_paths
+from caracara_archicad_mcp.images import images_allowed, set_images_allowed
 from caracara_archicad_mcp.tools.custom import capture
 from caracara_archicad_mcp.tools.custom.capture import archicad_capture_view
 
@@ -23,9 +24,9 @@ def settings(monkeypatch, tmp_path):
     monkeypatch.delenv("CARACARA_MCP_ALLOW_IMAGES", raising=False)
     monkeypatch.delenv("TAPIR_MCP_ALLOW_IMAGES", raising=False)
     file_paths.set_output_root(tmp_path / "output")
-    capture.set_images_allowed(None)
+    set_images_allowed(None)
     yield
-    capture.set_images_allowed(None)
+    set_images_allowed(None)
     file_paths.set_output_root(None)
 
 
@@ -45,13 +46,13 @@ def window(fake_archicad):
 
 
 def test_images_are_off_by_default():
-    assert not capture.images_allowed()
+    assert not images_allowed()
 
 
 @pytest.mark.parametrize("value", ["1", "true", "Yes"])
 def test_environment_allows_images(monkeypatch, value):
     monkeypatch.setenv("CARACARA_MCP_ALLOW_IMAGES", value)
-    assert capture.images_allowed()
+    assert images_allowed()
 
 
 @pytest.mark.asyncio
@@ -63,7 +64,7 @@ async def test_refuses_when_images_are_off(fake_archicad):
 
 @pytest.mark.asyncio
 async def test_window_capture_returns_the_picture_and_deletes_the_file(fake_archicad, window, tmp_path):
-    capture.set_images_allowed(True)
+    set_images_allowed(True)
 
     image = await archicad_capture_view(port=fake_archicad.port)
 
@@ -79,7 +80,7 @@ async def test_window_capture_returns_the_picture_and_deletes_the_file(fake_arch
 
 @pytest.mark.asyncio
 async def test_only_the_requested_file_is_read_and_deleted(fake_archicad, tmp_path):
-    capture.set_images_allowed(True)
+    set_images_allowed(True)
     bystander = tmp_path / "someone_elses.jpg"
     bystander.write_bytes(b"do not touch")
 
@@ -97,14 +98,14 @@ async def test_only_the_requested_file_is_read_and_deleted(fake_archicad, tmp_pa
 
 @pytest.mark.asyncio
 async def test_entire_drawing_is_passed_on(fake_archicad, window):
-    capture.set_images_allowed(True)
+    set_images_allowed(True)
     await archicad_capture_view(port=fake_archicad.port, entire_drawing=True)
     assert fake_archicad.calls[0][1]["entireDrawing"] is True
 
 
 @pytest.mark.asyncio
 async def test_oversized_images_are_refused_and_still_deleted(fake_archicad, window, monkeypatch):
-    capture.set_images_allowed(True)
+    set_images_allowed(True)
     monkeypatch.setattr(capture, "MAX_IMAGE_BYTES", 4)
     with pytest.raises(ToolError, match="limit"):
         await archicad_capture_view(port=fake_archicad.port)
@@ -113,7 +114,7 @@ async def test_oversized_images_are_refused_and_still_deleted(fake_archicad, win
 
 @pytest.mark.asyncio
 async def test_element_preview_comes_from_memory(fake_archicad):
-    capture.set_images_allowed(True)
+    set_images_allowed(True)
     fake_archicad.on_tapir_command("GetElementPreviewImage", {"previewImage": base64.b64encode(JPEG).decode()})
 
     image = await archicad_capture_view(port=fake_archicad.port, element={"guid": GUID}, view="Section", size=5000)
@@ -132,7 +133,7 @@ async def test_element_preview_comes_from_memory(fake_archicad):
 
 @pytest.mark.asyncio
 async def test_element_must_be_an_identifier(fake_archicad):
-    capture.set_images_allowed(True)
+    set_images_allowed(True)
     with pytest.raises(ToolError, match="element identifier"):
         await archicad_capture_view(port=fake_archicad.port, element={"name": "wall"})
 
@@ -145,12 +146,12 @@ def test_server_offers_the_tool_only_when_allowed(monkeypatch):
 
     server.configure_images(False)
     remove.assert_called_once_with(capture.TOOL_NAME)
-    assert not capture.images_allowed()
+    assert not images_allowed()
 
     remove.reset_mock()
     server.configure_images(True)
     remove.assert_not_called()
-    assert capture.images_allowed()
+    assert images_allowed()
 
 
 def test_server_flag_allows_images(monkeypatch):

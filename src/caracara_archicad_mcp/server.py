@@ -12,12 +12,12 @@ from mcp.server.mcpserver.exceptions import ToolError
 import caracara_archicad_mcp.model_configuration  # noqa: F401
 from caracara_archicad_mcp.app import mcp
 from caracara_archicad_mcp.file_paths import set_output_root
+from caracara_archicad_mcp.images import set_images_allowed
 from caracara_archicad_mcp.jobs import JobSettings
 from caracara_archicad_mcp.logging_config import setup_logging
 from caracara_archicad_mcp.middleware import BearerTokenMiddleware
 from caracara_archicad_mcp.safety import set_read_only
 from caracara_archicad_mcp.tools.custom.capture import TOOL_NAME as CAPTURE_TOOL
-from caracara_archicad_mcp.tools.custom.capture import set_images_allowed
 
 setup_logging()
 
