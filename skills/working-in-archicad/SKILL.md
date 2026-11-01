@@ -45,6 +45,13 @@ Do not describe the model as if you had read it.
   with it. Repeat with `confirm=true` only when the user agrees.
 - Each `archicad_mutate` call is one Undo step in Archicad; tell the user that one Ctrl+Z
   undoes it.
+- To create walls, columns, beams, slabs, roofs, zones, doors or windows, use `archicad_build`
+  with the whole list, not one create command per type. Run it with `dry_run=true` first: it
+  checks every element and returns the plan's `extent`. When the elements come from a picture
+  or drawing, show the user that size and get one known dimension confirmed before building.
+  Name walls with `ref` and place doors and windows in them with `hostRef`. The build returns
+  one `setId`; one `archicad_mutate` delete of it removes everything the build made, while
+  Ctrl+Z takes one step per element type.
 - For anything else, find the command with `archicad_list_commands`, read its arguments with
   `archicad_get_command_schema`, and do not guess fields. Send commands that only read (`Get…`,
   `Is…`, `Filter…`) with `archicad_read_tool`, and the rest with `archicad_call_tool`.
