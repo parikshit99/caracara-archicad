@@ -4,7 +4,7 @@ import json
 import pytest
 from mcp.types import CallToolResult
 
-from caracara_archicad_mcp.images import set_images_allowed, to_tool_result
+from caracara_archicad_mcp.images import IMAGE_LEFT_OUT, set_images_allowed, to_tool_result
 from caracara_archicad_mcp.tools.custom.functions import archicad_call_tool, archicad_get_job
 from caracara_archicad_mcp.tools.tool_registry import (
     TOOL_CALLABLE_REGISTRY,
@@ -188,11 +188,24 @@ async def test_failed_image_job_stays_a_plain_response(fake_archicad):
     assert "error" in result.structured_content
 
 
-async def test_images_stay_in_the_json_unless_allowed(fake_archicad, snapshot_command):
+async def test_images_are_left_out_unless_allowed(fake_archicad):
     set_images_allowed(None)
-    fake_archicad.on_tapir_command("GetElementPreviewImage", {"previewImage": PNG_B64})
+    fake_archicad.on_tapir_command("GetCurrentViewImage", {"image": PNG_B64, "width": 1, "height": 1})
 
-    result = await archicad_call_tool("elements_get_element_preview_image", PREVIEW_ARGS)
+    result = await archicad_call_tool("project_get_current_view_image", {"port": fake_archicad.port, "params": {}})
 
-    assert result.structured_content["previewImage"] == PNG_B64
-    assert len(result.content) == 1
+    assert result.structured_content == {"image": IMAGE_LEFT_OUT, "width": 1, "height": 1}
+    assert [block.type for block in result.content] == ["text"]
+    assert PNG_B64 not in result.content[0].text
+
+
+async def test_image_lists_are_left_out_unless_allowed():
+    set_images_allowed(None)
+    result = {"previewImages": [{"image": {"content": PNG_B64}}, {"error": {"code": 1, "message": "Not a profile."}}]}
+
+    converted = to_tool_result(get_tool_entry("attributes_get_profile_attribute_preview"), result)
+
+    assert [block.type for block in converted.content] == ["text"]
+    assert converted.structured_content == {
+        "previewImages": [{"image": {"content": IMAGE_LEFT_OUT}}, {"error": {"code": 1, "message": "Not a profile."}}]
+    }

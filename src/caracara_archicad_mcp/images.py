@@ -36,6 +36,14 @@ def _reference(number: int) -> str:
     return f"returned as MCP image content #{number}"
 
 
+# Base64 sent as text is hundreds of thousands of tokens the model cannot see, so with images off it is left out.
+IMAGE_LEFT_OUT = "image left out: images are switched off (allow them with --allow-images or CARACARA_MCP_ALLOW_IMAGES)"
+
+
+def _placeholder(number: int, allowed: bool) -> str:
+    return _reference(number) if allowed else IMAGE_LEFT_OUT
+
+
 def _image_content(data: JsonValue) -> ImageContent | None:
     # The image commands offer png and jpg. Anything else stays in the JSON, so a client never gets a broken image.
     if not isinstance(data, str):
@@ -55,12 +63,14 @@ def _image_content(data: JsonValue) -> ImageContent | None:
 def extract_images(
     entry: ToolRegistryEntry, result: dict[str, JsonValue]
 ) -> tuple[dict[str, JsonValue], list[ImageContent]]:
-    """Split an image command's result into the JSON without the images and the image blocks, in order."""
-    if not images_allowed():
-        return result, []
+    """Split an image command's result into the JSON without the images and the image blocks, in order.
+
+    With images off, the images are dropped and the JSON says so; nothing of them is sent.
+    """
+    allowed = images_allowed()
     field = entry.image_field
     if field is not None and (image := _image_content(result.get(field))) is not None:
-        return {**result, field: _reference(1)}, [image]
+        return {**result, field: _placeholder(1, allowed)}, [image] if allowed else []
 
     # Items of an image list are {"image": {"content": <base64>}} or {"error": ...}.
     list_field = entry.image_list_field
@@ -71,10 +81,10 @@ def extract_images(
             content = item.get("image") if isinstance(item, dict) else None
             if isinstance(content, dict) and (image := _image_content(content.get("content"))) is not None:
                 images.append(image)
-                item = {**item, "image": {**content, "content": _reference(len(images))}}
+                item = {**item, "image": {**content, "content": _placeholder(len(images), allowed)}}
             items.append(item)
         if images:
-            return {**result, list_field: items}, images
+            return {**result, list_field: items}, images if allowed else []
 
     return result, []
 
