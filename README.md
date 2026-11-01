@@ -10,7 +10,7 @@ A personal, experimental fork of [tapir-archicad-MCP](https://github.com/Szamosi
 
 > **Note:** This is a downstream, fast-moving fork of [SzamosiMate/tapir-archicad-MCP](https://github.com/SzamosiMate/tapir-archicad-MCP) maintained for custom workflows and experimental Archicad tool bindings. All core credit belongs to Máté Szamosi. If you need the stable upstream release, visit the original repository.
 
-The server is a bridge that lets AI agents and applications (Claude Desktop, Claude Code, Gemini CLI and other MCP clients) work with running Archicad instances. It wraps both the community **Tapir API** and the **official Archicad JSON API**: **351 commands** (302 Tapir + 49 official), generated from the schemas published by [`multiconn_archicad`](https://github.com/SzamosiMate/multiconn_archicad).
+The server is a bridge that lets AI agents and applications (Claude Desktop, Claude Code, Gemini CLI and other MCP clients) work with running Archicad instances. It wraps both the community **Tapir API** and the **official Archicad JSON API**: **456 commands** (402 Tapir + 54 official), generated from the schemas published by [`multiconn_archicad`](https://github.com/SzamosiMate/multiconn_archicad). A few Tapir commands are left out on purpose, listed with reasons in `scripts/generator_config.py`: ones that can lose unsaved work (`QuitArchicad`, `CloseProject`, `NewProject`), ones the official API already covers (for example `DeleteAttributes`, `GetLayers`, `GetLines`, `GetPenTables`), and two revision commands whose published schemas are malformed.
 
 ---
 
@@ -40,7 +40,7 @@ The server is a bridge that lets AI agents and applications (Claude Desktop, Cla
 | `archicad_project_overview` | Returns, in one read-only call, what an agent needs before working: Archicad and Tapir versions, project name and type, stories (index, name, level, height), calculation units, north direction, layers (with which are locked or hidden) and classification systems. The file path, geographic location and Project Info fields (client, address, ...) are only included with `include_private=true`. |
 | `archicad_capture_view` | **Off by default; offered only when the user allows images.** Returns a picture so the agent can check its work: the Archicad window currently in front (optionally the entire 2D drawing), or a 3D, 2D or section preview of one element. Pictures of the design go to the AI provider, which is why the user has to switch this on. |
 | `archicad_spatial_query` | Relates two element sets in space. `near`: pairs whose 3D bounding boxes are at most `distance` meters apart (e.g. conduits within 0.5 m of walls); `inside`: elements whose bounding-box center lies in an element of the other set (e.g. furniture per zone); `collides`: Archicad's exact geometry check, including MEP clearance zones. Returns counts, the nearest pairs (named by Element ID) and the matching elements as new `setId`s. `near` and `inside` use a spatial index, so thousands of elements take well under a second; bounding boxes approximate diagonal and irregular shapes. |
-| `archicad_list_commands` | Lists all 351 command names with short descriptions. |
+| `archicad_list_commands` | Lists all 456 command names with short descriptions. |
 | `archicad_get_command_schema` | Returns the JSON schema of one command's arguments. |
 | `archicad_call_tool` | Runs any command by name, after validating its arguments against the schema. |
 | `archicad_get_job` | Gets a long-running job's result by handle, or lists recent jobs to recover a lost response. |
