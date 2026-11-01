@@ -62,6 +62,12 @@ Check each of these after every upstream merge.
   `confirm=true`. `confirm` is the only way through; there is no separate `allow_partial` flag.
 - **A delete that also removes doors or windows waits for `confirm=true`** (2026-10-23, Caracara).
   Archicad deletes hosted elements with their host.
+- **The server asks the user itself where the client can** (2026-11-01, maintainer). `confirm=true`
+  relies on the AI asking the user. When the client supports MCP form elicitation, `archicad_mutate`
+  asks the user directly before a change that would otherwise wait for `confirm=true`, and ignores
+  the AI's `confirm`, so the AI cannot answer for the user. Saying no changes nothing. Clients
+  without elicitation keep `confirm=true`. A client may answer such questions without showing them
+  to a person; that is the client's choice and outside Caracara's control.
 - **Elements are never reserved automatically in Teamwork** (2026-10-23, Caracara). Reserving
   changes what the rest of the team can do, so it stays a person's decision.
 - **Large changes are never split into batches** (2026-10-24, Caracara, against an outside

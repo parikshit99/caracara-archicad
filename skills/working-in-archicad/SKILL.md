@@ -41,7 +41,8 @@ Do not describe the model as if you had read it.
 
 - Run `archicad_mutate` with `dry_run=true` first. Show the user what it reports: elements that
   no longer exist, locked or not reserved elements, and doors or windows a delete would take
-  with it. Repeat with `confirm=true` only when the user agrees.
+  with it. Repeat with `confirm=true` only when the user agrees. If the result says
+  `declinedByUser`, Caracara asked the user in the client and they said no: change nothing.
 - Each `archicad_mutate` call is one Undo step in Archicad; tell the user that one Ctrl+Z
   undoes it.
 - To create walls, columns, beams, slabs, roofs, zones, doors or windows, use `archicad_build`

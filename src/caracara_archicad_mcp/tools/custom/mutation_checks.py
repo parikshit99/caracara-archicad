@@ -127,6 +127,26 @@ def describe_hosted(hosted: list[dict[str, Any]]) -> str:
     return ", ".join(f"{count} {kind.lower()}{'s' if count != 1 else ''}" for kind, count in counts.items())
 
 
+async def confirmation_reasons(element_ids: list[dict[str, Any]], port: int, *, deletes: bool) -> str | None:
+    """Why a change needs the user's go-ahead: Archicad would skip some of its elements, or a delete would also
+    remove doors, windows, skylights or openings. None when it needs none."""
+    # The client may ask again with the same text on a later round and match the answer to it, so the text
+    # holds only counts that stay the same while the model does.
+    reasons: list[str] = []
+    report, _ = await skipped_elements(element_ids, port)
+    skipped = report.get("missingCount", 0) + report.get("notEditableCount", 0)
+    if skipped:
+        reasons.append(
+            f"Archicad would skip {skipped} of them: they no longer exist, are on a locked layer, or are not "
+            "reserved by you in Teamwork."
+        )
+    if deletes:
+        hosted, _ = await hosted_elements(element_ids, port)
+        if hosted:
+            reasons.append(f"Deleting them also deletes {describe_hosted(hosted)} placed in them.")
+    return " ".join(reasons) or None
+
+
 async def preflight(
     action: str,
     element_ids: list[dict[str, Any]],

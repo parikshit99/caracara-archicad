@@ -10,11 +10,20 @@ from __future__ import annotations
 import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Annotated, Any
 
+from mcp.server.mcpserver import (
+    AcceptedElicitation,
+    CancelledElicitation,
+    Context,
+    DeclinedElicitation,
+    Elicit,
+    Resolve,
+)
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
 from multiconn_archicad.models.tapir.types import ElementType
+from pydantic import BaseModel
 
 from caracara_archicad_mcp.app import mcp
 from caracara_archicad_mcp.result_registry import ResultRegistry
@@ -22,6 +31,7 @@ from caracara_archicad_mcp.safety import ensure_allowed
 from caracara_archicad_mcp.tools.custom.element_sets import element_ids, target_elements
 from caracara_archicad_mcp.tools.custom.functions import call_tool_payload, is_running
 from caracara_archicad_mcp.tools.custom.mutation_checks import (
+    confirmation_reasons,
     describe_hosted,
     hosted_elements,
     label_listed,
@@ -361,6 +371,66 @@ ACTION_COMMANDS = {
 }
 
 
+class _GoAhead(BaseModel):
+    """The user's answer when asked before a change: accepting the question is the go-ahead."""
+
+
+def _client_can_ask(ctx: Context) -> bool:
+    """True when the client can show the user a question (MCP form elicitation)."""
+    elicitation = ctx.client_capabilities.elicitation if ctx.client_capabilities else None
+    # A client from before elicitation modes declares the capability empty, which means forms.
+    return elicitation is not None and (elicitation.form is not None or elicitation.url is None)
+
+
+async def _ask_user(
+    target_set: str | list[Any], action: str, port: int | None, dry_run: bool, ctx: Context
+) -> Elicit[_GoAhead] | bool | None:
+    """Ask the user directly before a change that needs their go-ahead, instead of trusting the AI's confirm=true.
+
+    None: the client cannot ask, so confirm decides. False: there is nothing to ask.
+    """
+    if not _client_can_ask(ctx):
+        return None
+    run_action = MUTATION_ACTIONS.get(action.strip().lower())
+    if dry_run or run_action is None or run_action is _highlight:
+        return False
+    try:
+        ensure_allowed(ACTION_COMMANDS[run_action], can_preview=True)
+        ids, _ = element_ids(target_elements(target_set))
+    except ToolError:
+        # archicad_mutate raises the same error itself, so there is nothing to ask about.
+        return False
+    if not ids:
+        return False
+    reasons = await confirmation_reasons(ids, port or 19723, deletes=run_action is _delete)
+    if reasons is None:
+        return False
+    elements = f"{len(ids)} element{'s' if len(ids) != 1 else ''}"
+    return Elicit(f"The AI wants to {action.strip().lower()} {elements} in Archicad. {reasons} Go ahead?", _GoAhead)
+
+
+# What _ask_user found: the user's answer, or a plain value when nobody was asked.
+UserAnswer = AcceptedElicitation[Any] | DeclinedElicitation | CancelledElicitation | None
+
+
+def _confirmed(user_answer: UserAnswer, confirm: bool) -> bool | None:
+    """Whether a change that needs a go-ahead may go ahead; None when the user said no."""
+    if isinstance(user_answer, DeclinedElicitation | CancelledElicitation):
+        return None
+    if user_answer is None or user_answer.data is None:
+        return confirm
+    # The client asks its user, so only their answer counts, not the AI's confirm.
+    return isinstance(user_answer.data, _GoAhead)
+
+
+DECLINED_BY_USER = {
+    "changed": False,
+    "declinedByUser": True,
+    "message": "Nothing was changed: the user said no when asked in their client. Do not repeat this change "
+    "unless the user asks for it again.",
+}
+
+
 @mcp.tool(
     name="archicad_mutate",
     title="Mutate Archicad Elements",
@@ -375,8 +445,9 @@ ACTION_COMMANDS = {
         "exist or cannot be changed (locked layer, or not reserved in Teamwork) are looked for; if there are "
         "any, nothing is changed and they are reported instead, and a delete that would also remove doors, "
         "windows, skylights or openings of other elements is held back the same way. Show that report to the "
-        "user and repeat the call with confirm=true only if they agree. Elements Archicad still skips are "
-        "listed in 'failedElements'. dry_run=true changes nothing and returns the same report."
+        "user and repeat the call with confirm=true only if they agree. In a client that can ask its user "
+        "directly, Caracara asks them itself before such a change and ignores confirm. Elements Archicad still "
+        "skips are listed in 'failedElements'. dry_run=true changes nothing and returns the same report."
     ),
     annotations=ToolAnnotations(
         readOnlyHint=False,
@@ -392,6 +463,7 @@ async def archicad_mutate(
     port: int | None = None,
     dry_run: bool = False,
     confirm: bool = False,
+    user_answer: Annotated[UserAnswer, Resolve(_ask_user)] = None,
 ) -> dict[str, Any]:
     """Execute a polymorphic mutation on Archicad elements."""
     action = action.strip().lower()
@@ -418,6 +490,9 @@ async def archicad_mutate(
             deletes=run_action is _delete,
         )
         return {"dryRun": True, **report, **_set_age(target_set)}
+    confirm = _confirmed(user_answer, confirm)
+    if confirm is None:
+        return {**DECLINED_BY_USER}
     mutation = _Mutation(ids, invalid, set_id, payload, target_port, confirm)
     if run_action is _highlight:
         return await run_action(mutation)
