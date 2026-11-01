@@ -25,8 +25,6 @@ against a live Archicad and is built only if the check shows a problem.
 
 ## Small improvements
 
-- **Give the weekly pre-release its own version.** It reports the version of the last stable
-  release, because only its file name carries the build date.
 - **Check `classified` queries for 2D elements.** `archicad_query(target="classified")` uses
   Archicad's official `GetElementsByClassification`. Official commands that list elements may
   return model elements only, leaving out labels, dimensions and markers.

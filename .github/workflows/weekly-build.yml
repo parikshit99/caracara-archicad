@@ -98,7 +98,15 @@ jobs:
         id: label
         run: |
           VERSION=$(uv run --no-project python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
-          echo "value=${VERSION}-weekly.$(date -u +%Y%m%d).${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
+          DATE=$(date -u +%Y%m%d)
+          echo "value=${VERSION}-weekly.${DATE}.${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}+weekly.${DATE}.g${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
+      # The package and the bundle report this version, so a user can tell a weekly build from the
+      # stable release it starts from. '+' starts a local version (PEP 440) and build metadata (SemVer),
+      # valid in both pyproject.toml and manifest.json; PyPI refuses it, and this build is never uploaded.
+      # The 'g' keeps a commit made only of digits from losing its leading zeros to PEP 440 normalisation.
+      - name: Give the build its own version
+        run: uv run --locked python scripts/release.py bump "${{ steps.label.outputs.version }}"
       - uses: ./.github/actions/build-package
         with:
           label: ${{ steps.label.outputs.value }}
