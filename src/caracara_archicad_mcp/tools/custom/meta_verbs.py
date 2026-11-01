@@ -20,7 +20,7 @@ from caracara_archicad_mcp.app import mcp
 from caracara_archicad_mcp.result_registry import ResultRegistry
 from caracara_archicad_mcp.safety import ensure_allowed
 from caracara_archicad_mcp.tools.custom.element_sets import element_ids, target_elements
-from caracara_archicad_mcp.tools.custom.functions import archicad_call_tool, is_running
+from caracara_archicad_mcp.tools.custom.functions import call_tool_payload, is_running
 from caracara_archicad_mcp.tools.custom.mutation_checks import (
     describe_hosted,
     hosted_elements,
@@ -81,13 +81,13 @@ def _itemize(result: Any, ids: list[dict[str, Any]], invalid: list[dict[str, Any
 
 async def _all_pages(name: str, arguments: dict[str, Any]) -> tuple[Any, list[dict[str, Any]]]:
     """Call a paginated listing and follow next_page_token until every element is collected."""
-    result = await archicad_call_tool(name, arguments)
+    result = await call_tool_payload(name, arguments)
     if is_running(result):
         return result, []
     elements = list(result.get("elements", []))
     token = result.get("next_page_token")
     while token:
-        page = await archicad_call_tool(name, {**arguments, "page_token": token})
+        page = await call_tool_payload(name, {**arguments, "page_token": token})
         elements.extend(page.get("elements", []))
         token = page.get("next_page_token")
     return result, elements
@@ -137,17 +137,17 @@ async def _find(target: str, filter: dict[str, Any] | None, port: int) -> _Found
         if not filter or "classificationItemId" not in filter:
             raise ToolError("When target is 'classified', filter must include 'classificationItemId'.")
         params = {"classificationItemId": filter["classificationItemId"]}
-        raw = await archicad_call_tool("elements_get_elements_by_classification", {"port": port, "params": params})
+        raw = await call_tool_payload("elements_get_elements_by_classification", {"port": port, "params": params})
         return _from_receipt(raw, "Classified")
     if kind in ("filter", "filtered"):
         if not filter:
             raise ToolError("When target is 'filter', filter dictionary must be provided.")
-        raw = await archicad_call_tool("elements_filter_elements", {"port": port, "params": filter})
+        raw = await call_tool_payload("elements_filter_elements", {"port": port, "params": filter})
         return _from_receipt(raw, "Filtered")
 
     element_type = _normalize_element_type(target)
     params = {"elementType": element_type, **filters}
-    raw = await archicad_call_tool("elements_get_elements_by_type", {"port": port, "params": params})
+    raw = await call_tool_payload("elements_get_elements_by_type", {"port": port, "params": params})
     return _from_receipt(raw, element_type)
 
 
@@ -166,7 +166,7 @@ async def _query_output(found: _Found, set_id: str, output: list[str] | str | No
         details_params: dict[str, Any] = {"elements": found.elements}
         if isinstance(output, list) and output:
             details_params["fields"] = output
-        details = await archicad_call_tool("elements_get_details_of_elements", {"port": port, "params": details_params})
+        details = await call_tool_payload("elements_get_details_of_elements", {"port": port, "params": details_params})
         if is_running(details):
             return {**response, **details}
         response["details"] = details.get("detailsOfElements", [])
@@ -236,7 +236,7 @@ class _Mutation:
 
     async def run(self, command: str, params: dict[str, Any]) -> Any:
         """Run one Tapir command, which Archicad applies as one Undo step, and itemize failed elements."""
-        result = await archicad_call_tool(command, {"port": self.port, "params": params})
+        result = await call_tool_payload(command, {"port": self.port, "params": params})
         return _itemize(result, self.element_ids, self.invalid)
 
 

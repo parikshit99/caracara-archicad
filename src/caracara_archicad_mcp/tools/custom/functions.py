@@ -2,10 +2,10 @@ import asyncio
 import json
 import logging
 import time
-from typing import Any
+from typing import Annotated, Any
 
 from mcp.server.mcpserver.exceptions import ToolError
-from mcp.types import ToolAnnotations
+from mcp.types import CallToolResult, ToolAnnotations
 from multiconn_archicad import (
     APIResponseError,
     ConnHeader,
@@ -21,6 +21,7 @@ from pydantic import ValidationError
 from caracara_archicad_mcp.app import mcp
 from caracara_archicad_mcp.context import job_store_instance, multi_conn_instance
 from caracara_archicad_mcp.file_paths import confine_write_paths
+from caracara_archicad_mcp.images import build_result, extract_images, to_tool_result
 from caracara_archicad_mcp.jobs import JobStore
 from caracara_archicad_mcp.pagination import PaginationRequest, prepare_result
 from caracara_archicad_mcp.request_lifecycle import DispatchLifecycle
@@ -239,7 +240,7 @@ def archicad_get_command_schema(command_name: str) -> CommandSchema:
         openWorldHint=True,
     ),
 )
-async def archicad_call_tool(name: str, arguments: dict) -> dict:
+async def archicad_call_tool(name: str, arguments: dict) -> Annotated[CallToolResult, dict]:
     log.info(f"Executing archicad_call_tool for tool: {name}")
 
     if "targetSetId" in arguments and arguments["targetSetId"] is not None:
@@ -275,7 +276,7 @@ async def archicad_call_tool(name: str, arguments: dict) -> dict:
     port = validated_arguments.port
     if tool_entry.pagination_field is not None and validated_arguments.page_token is not None:
         # Continuations read retained data and do not create execution jobs.
-        return await asyncio.to_thread(_read_cached_page, name, tool_entry, validated_arguments, store)
+        return build_result(await asyncio.to_thread(_read_cached_page, name, tool_entry, validated_arguments, store))
     job = store.submit(
         name,
         port,
@@ -283,7 +284,7 @@ async def archicad_call_tool(name: str, arguments: dict) -> dict:
         lambda handle: _execute_tool(name, tool_entry, validated_arguments, handle),
     )
     await store.wait(job)
-    return store.initial_result(job)
+    return to_tool_result(tool_entry, store.initial_result(job))
 
 
 def _read_cached_page(name: str, tool_entry: ToolRegistryEntry, arguments: Any, store: JobStore) -> dict:
@@ -379,13 +380,17 @@ def _get_header(port: int) -> ConnHeader:
         openWorldHint=False,
     ),
 )
-async def archicad_get_job(job_handle: str | None = None) -> dict:
+async def archicad_get_job(job_handle: str | None = None) -> Annotated[CallToolResult, dict]:
     store = job_store_instance.get()
     if job_handle is None:
-        return store.list_jobs()
+        return build_result(store.list_jobs())
     job = store.get(job_handle)
     await store.wait(job)
-    return store.response(job)
+    response = store.response(job)
+    stripped, images = extract_images(get_tool_entry(job.command), response.get("result", {}))
+    if images:
+        response = {**response, "result": stripped}
+    return build_result(response, images)
 
 
 def is_running(result: Any) -> bool:
@@ -393,19 +398,32 @@ def is_running(result: Any) -> bool:
     return isinstance(result, dict) and result.get("status") == "running" and "jobHandle" in result
 
 
-async def call_and_wait(name: str, arguments: dict, limit_seconds: float = JOB_WAIT_LIMIT_SECONDS) -> Any:
-    """archicad_call_tool for callers that need the answer itself, waiting while Archicad works."""
+async def call_tool_payload(name: str, arguments: dict) -> Any:
+    """archicad_call_tool for callers that work with the result as data, not as an MCP response."""
+    return (await archicad_call_tool(name, arguments)).structured_content
+
+
+async def call_and_wait_result(
+    name: str, arguments: dict, limit_seconds: float = JOB_WAIT_LIMIT_SECONDS
+) -> CallToolResult:
+    """archicad_call_tool for callers that need the finished response, images included, waiting while Archicad works."""
     result = await archicad_call_tool(name, arguments)
     deadline = time.monotonic() + limit_seconds
-    while is_running(result):
+    while is_running(result.structured_content):
         if time.monotonic() > deadline:
             raise ToolError("Archicad is still working on it; try again with fewer elements.")
-        response = await archicad_get_job(result["jobHandle"])
+        job = await archicad_get_job(result.structured_content["jobHandle"])
+        response = job.structured_content
         if response["status"] == "failed":
             raise ToolError(f"Archicad could not answer: {response.get('error')}")
         if response["status"] == "completed":
-            result = response["result"]
+            result = build_result(response["result"], job.content[1:])
     return result
+
+
+async def call_and_wait(name: str, arguments: dict, limit_seconds: float = JOB_WAIT_LIMIT_SECONDS) -> Any:
+    """archicad_call_tool for callers that need the answer itself, waiting while Archicad works."""
+    return (await call_and_wait_result(name, arguments, limit_seconds)).structured_content
 
 
 async def call_and_collect(name: str, arguments: dict, field: str) -> list[Any]:
@@ -416,7 +434,7 @@ async def call_and_collect(name: str, arguments: dict, field: str) -> list[Any]:
     items = list(result[field])
     token = result.get("next_page_token")
     while token:
-        page = await archicad_call_tool(name, {**arguments, "page_token": token})
+        page = await call_tool_payload(name, {**arguments, "page_token": token})
         items.extend(page.get(field, []))
         token = page.get("next_page_token")
     return items

@@ -14,7 +14,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 
 from caracara_archicad_mcp.result_registry import ResultRegistry
 from caracara_archicad_mcp.tools.custom.element_sets import as_elements, element_id, element_labels, labels_or_warning
-from caracara_archicad_mcp.tools.custom.functions import archicad_call_tool, is_running
+from caracara_archicad_mcp.tools.custom.functions import call_tool_payload, is_running
 
 # Element types Archicad deletes together with the element that hosts them.
 HOSTED_ELEMENT_TYPES = ("Door", "Window", "Skylight", "Opening")
@@ -29,7 +29,7 @@ def _guids(elements: list[Any]) -> list[str]:
 async def not_editable(element_ids: list[dict[str, Any]], port: int) -> tuple[list[dict[str, Any]], str | None]:
     """The elements Archicad would refuse to change, and a warning when that could not be checked."""
     try:
-        result = await archicad_call_tool(
+        result = await call_tool_payload(
             "elements_filter_elements",
             {"port": port, "params": {"elements": as_elements(element_ids), "filters": ["IsEditable"]}},
         )
@@ -53,7 +53,7 @@ async def hosted_elements(element_ids: list[dict[str, Any]], port: int) -> tuple
     unchecked: list[str] = []
     for element_type in HOSTED_ELEMENT_TYPES:
         try:
-            result = await archicad_call_tool(
+            result = await call_tool_payload(
                 "elements_get_connected_elements",
                 {"port": port, "params": {"elements": as_elements(element_ids), "connectedElementType": element_type}},
             )

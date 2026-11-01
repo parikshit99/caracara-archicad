@@ -47,17 +47,15 @@ async def _layers(port: int) -> dict[str, Any]:
         "attributes_get_attributes_by_type", {"port": port, "params": {"attributeType": "Layer"}}, "attributes"
     )
     details = await call_and_collect(
-        "attributes_get_layers",
-        {
-            "port": port,
-            "params": {
-                "attributeIds": [{"attributeId": header["attributeId"]} for header in headers],
-                "fields": ["isHidden", "isLocked"],
-            },
-        },
-        "layers",
+        "attributes_get_layer_attributes",
+        {"port": port, "params": {"attributeIds": [{"attributeId": header["attributeId"]} for header in headers]}},
+        "attributes",
     )
-    layers = [layer for layer in details if isinstance(layer, dict) and "name" in layer]
+    layers = [
+        item["layerAttribute"]
+        for item in details
+        if isinstance(item, dict) and isinstance(item.get("layerAttribute"), dict) and "name" in item["layerAttribute"]
+    ]
     names = [layer["name"] for layer in layers]
     summary: dict[str, Any] = {
         "count": len(names),

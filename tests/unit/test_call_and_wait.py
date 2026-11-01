@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import pytest
 from mcp.server.mcpserver.exceptions import ToolError
+from mcp.types import ImageContent
 
+from caracara_archicad_mcp.images import build_result
 from caracara_archicad_mcp.tools.custom import functions
 from caracara_archicad_mcp.tools.custom.functions import call_and_wait, is_running
 
@@ -18,11 +20,11 @@ def archicad(monkeypatch):
     answers: list[dict] = []
 
     async def call_tool(name, arguments):
-        return RUNNING
+        return build_result(RUNNING)
 
     async def get_job(handle):
         polls.append(handle)
-        return answers.pop(0)
+        return build_result(answers.pop(0))
 
     monkeypatch.setattr(functions, "archicad_call_tool", call_tool)
     monkeypatch.setattr(functions, "archicad_get_job", get_job)
@@ -72,7 +74,7 @@ async def test_collect_follows_every_page(monkeypatch):
     }
 
     async def call_tool(name, arguments):
-        return pages[arguments.get("page_token")]
+        return build_result(pages[arguments.get("page_token")])
 
     monkeypatch.setattr(functions, "archicad_call_tool", call_tool)
 
@@ -87,9 +89,26 @@ async def test_collect_follows_every_page(monkeypatch):
 @pytest.mark.asyncio
 async def test_collect_needs_the_field(monkeypatch):
     async def call_tool(name, arguments):
-        return {"error": {"message": "unavailable"}}
+        return build_result({"error": {"message": "unavailable"}})
 
     monkeypatch.setattr(functions, "archicad_call_tool", call_tool)
 
     with pytest.raises(ToolError, match="no 'attributes'"):
         await functions.call_and_collect("attributes_get_attributes_by_type", {"port": 1}, "attributes")
+
+
+@pytest.mark.asyncio
+async def test_finished_job_keeps_its_image(archicad, monkeypatch):
+    _, answers = archicad
+    image = ImageContent(type="image", data="AAAA", mime_type="image/png")
+    result = {"previewImage": "returned as MCP image content #1"}
+    answers.append({"status": "completed", "result": result})
+
+    async def get_job(handle):
+        return build_result(answers.pop(0), [image])
+
+    monkeypatch.setattr(functions, "archicad_get_job", get_job)
+    response = await functions.call_and_wait_result("elements_get_element_preview_image", {"port": 19723})
+
+    assert response.structured_content == result
+    assert response.content[1:] == [image]

@@ -12,6 +12,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from multiconn_archicad import Port
 from multiconn_archicad.clients.core.core_commands import CoreCommands
 from multiconn_archicad.models.tapir.commands import IFCFileOperationParameters, OpenProjectParameters
+from payloads import archicad_call_tool
 
 from caracara_archicad_mcp import file_paths
 from caracara_archicad_mcp.context import multi_conn_instance
@@ -20,7 +21,6 @@ from caracara_archicad_mcp.result_registry import STORAGE_SETS, ResultRegistry
 from caracara_archicad_mcp.safety import is_read_only_command
 from caracara_archicad_mcp.tools import overrides
 from caracara_archicad_mcp.tools.custom import meta_verbs
-from caracara_archicad_mcp.tools.custom.functions import archicad_call_tool
 from caracara_archicad_mcp.tools.custom.meta_verbs import archicad_mutate, archicad_query
 
 SRC = Path(__file__).resolve().parents[2] / "src"
@@ -264,7 +264,7 @@ async def test_query_returns_running_job_instead_of_empty_set(monkeypatch):
     async def running(name, arguments):
         return {"status": "running", "jobHandle": "job:abc"}
 
-    monkeypatch.setattr(meta_verbs, "archicad_call_tool", running)
+    monkeypatch.setattr(meta_verbs, "call_tool_payload", running)
     assert await archicad_query("Wall") == {"status": "running", "jobHandle": "job:abc"}
     assert len(STORAGE_SETS) == 0
 
@@ -276,7 +276,7 @@ async def test_query_ids_output_is_capped(monkeypatch):
     async def selected(name, arguments):
         return {"elements": elements}
 
-    monkeypatch.setattr(meta_verbs, "archicad_call_tool", selected)
+    monkeypatch.setattr(meta_verbs, "call_tool_payload", selected)
     result = await archicad_query("selected", output="ids")
     assert result["count"] == len(elements)
     assert len(result["elements"]) == meta_verbs.MAX_INLINE_ELEMENTS
@@ -366,7 +366,7 @@ async def test_query_all_follows_every_page(monkeypatch):
     async def paged(name, arguments):
         return pages[arguments.get("page_token")]
 
-    monkeypatch.setattr(meta_verbs, "archicad_call_tool", paged)
+    monkeypatch.setattr(meta_verbs, "call_tool_payload", paged)
     result = await archicad_query("all")
     assert result["count"] == 201
     assert ResultRegistry.count(result["setId"]) == 201
