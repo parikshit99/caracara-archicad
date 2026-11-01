@@ -62,7 +62,20 @@ conflict (R23).
   Git does not always follow the package rename. Move any file the merge adds under
   `src/tapir_archicad_mcp/` or `tests/` with `tapir_archicad_mcp` imports into the Caracara
   package and rename its imports; `src/tapir_archicad_mcp/__init__.py` is our compatibility
-  shim and stays. Then run the checks above.
+  shim and stays. Then run the checks above, and check the deliberate differences listed in
+  [docs/decisions.md](docs/decisions.md#deliberate-differences-from-upstream).
+
+## Decisions and other projects
+
+[docs/decisions.md](docs/decisions.md) records why Caracara is built the way it is. Read it before
+re-opening a decision, and add an entry when you make one.
+
+- **REVIEW.md wins over upstream.** When an upstream change breaks a Caracara rule (above all
+  R13–R17), change it back as little as possible and add it to "Deliberate differences from
+  upstream" in docs/decisions.md. After every upstream merge, check each listed difference.
+- **[alesdev88/Archicad-MCP](https://github.com/alesdev88/Archicad-MCP) is a source of ideas,
+  never of code.** Do not merge or copy from it. An idea from it goes into
+  [ROADMAP.md](ROADMAP.md) first, and its claims about Archicad's behaviour are checked live.
 
 ## How to work
 

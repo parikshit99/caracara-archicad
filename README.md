@@ -240,7 +240,7 @@ The Caracara icon is this project's own artwork, a crested caracara; the full-si
 
 ## Contributing
 
-Issues and pull requests are welcome on the [Caracara repository](https://github.com/parikshit99/Caracara-Archicad-MCP). Please run the checks in [Development](#development) before opening a pull request. [ROADMAP.md](ROADMAP.md) lists what we plan to work on and what we decided against.
+Issues and pull requests are welcome on the [Caracara repository](https://github.com/parikshit99/Caracara-Archicad-MCP). Please run the checks in [Development](#development) before opening a pull request. [ROADMAP.md](ROADMAP.md) lists what we plan to work on, and [docs/decisions.md](docs/decisions.md) why Caracara is built the way it is.
 
 ---
 

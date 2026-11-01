@@ -3,7 +3,7 @@
 What we plan to work on, and what we decided against. Nothing here is promised; items move up
 or out as the live tests and the community's needs show. Every item still follows
 [REVIEW.md](REVIEW.md): a new tool, setting, dependency or network call needs the maintainer's
-agreement first.
+agreement first. Decisions already made, and why, are in [docs/decisions.md](docs/decisions.md).
 
 ## Test live first
 
@@ -14,7 +14,7 @@ against a live Archicad and is built only if the check shows a problem.
   another window's database, or GDL parameters that the object's Parameter Script overrides.
   `archicad_mutate` trusts Archicad's per-element answers. If a live test shows this happening,
   read the changed fields back after a change and report what did not change as `notApplied`.
-- **Property reads that crash Archicad.** Another Archicad MCP server saw Archicad 29 crash on
+- **Property reads that crash Archicad.** [alesdev88/Archicad-MCP](https://github.com/alesdev88/Archicad-MCP) saw Archicad 29 crash on
   `GetPropertyValuesOfElements`, once on a single custom property of a single element (Tapir
   1.5.3). Check on Archicad 30 with Tapir 1.7.3. If it reproduces: a limit on how many elements
   one property read may cover, and a "save first" warning in the tool descriptions.
