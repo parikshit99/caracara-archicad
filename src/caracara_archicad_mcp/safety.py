@@ -55,14 +55,19 @@ def session_commands_allowed() -> bool:
     return value.strip().lower() in ("1", "true", "yes")
 
 
-def is_read_only_command(command: str) -> bool:
-    """True when the Archicad command (e.g. 'GetLayers', 'API.GetAllElements') cannot change anything."""
+def is_reading_command(command: str) -> bool:
+    """True when the Archicad command (e.g. 'GetLayers', 'API.GetAllElements') only reads the model."""
     name = command.removeprefix("API.")
     # The verb must end at a word boundary: 'GetLayers' and 'Get3DBoundingBoxes' read, 'Getaway' would not.
-    return name in REVIEWED_COMMANDS or any(
+    return any(
         name.startswith(prefix) and len(name) > len(prefix) and not name[len(prefix)].islower()
         for prefix in READ_ONLY_PREFIXES
     )
+
+
+def is_read_only_command(command: str) -> bool:
+    """True when the Archicad command cannot change the project: a reading command or a reviewed one."""
+    return command.removeprefix("API.") in REVIEWED_COMMANDS or is_reading_command(command)
 
 
 def ensure_allowed(command: str, *, can_preview: bool = False) -> None:

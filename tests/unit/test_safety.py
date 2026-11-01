@@ -6,7 +6,7 @@ import sys
 
 import pytest
 from mcp.server.mcpserver.exceptions import ToolError
-from payloads import archicad_call_tool
+from payloads import archicad_call_tool, archicad_read_tool
 
 from caracara_archicad_mcp import safety
 from caracara_archicad_mcp.result_registry import ResultRegistry
@@ -139,6 +139,39 @@ async def test_read_only_still_allows_reading(fake_archicad):
         {"port": fake_archicad.port, "params": {"elements": _ids(WALL_1), "connectedElementType": "Door"}},
     )
     assert result == {"connectedElements": [{"elements": []}]}
+
+
+# --- The read-only gateway: archicad_read_tool -------------------------------
+
+
+@pytest.mark.asyncio
+async def test_read_tool_runs_reading_commands(fake_archicad):
+    fake_archicad.on_tapir_command("GetConnectedElements", hosts({}))
+    arguments = {"port": fake_archicad.port, "params": {"elements": _ids(WALL_1), "connectedElementType": "Door"}}
+
+    result = await archicad_read_tool("elements_get_connected_elements", arguments)
+
+    assert result == {"connectedElements": [{"elements": []}]}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("name", "params"),
+    [
+        ("elements_delete_elements", {"elements": _ids(WALL_1)}),
+        ("elements_highlight_elements", {"elements": _ids(WALL_1), "highlightedColors": [[255, 0, 0, 255]]}),
+    ],
+)
+async def test_read_tool_refuses_every_other_command_before_contacting_archicad(fake_archicad, name, params):
+    with pytest.raises(ToolError, match="archicad_call_tool"):
+        await archicad_read_tool(name, {"port": fake_archicad.port, "params": params})
+    assert fake_archicad.calls == []
+
+
+def test_only_reading_verbs_count_for_the_read_tool():
+    assert safety.is_reading_command("API.GetAllElements")
+    assert not safety.is_reading_command("HighlightElements")
+    assert not safety.is_reading_command("SaveCurrentWindowAsImage")
 
 
 @pytest.mark.asyncio

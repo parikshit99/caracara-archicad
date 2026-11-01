@@ -43,9 +43,10 @@ The server is a bridge that lets AI agents and applications (Claude Desktop, Cla
 | `archicad_list_commands` | Lists all 458 command names with short descriptions. |
 | `archicad_get_command_schema` | Returns the JSON schema of one command's arguments. |
 | `archicad_call_tool` | Runs any command by name, after validating its arguments against the schema. |
+| `archicad_read_tool` | Runs a command that only reads (its name starts with `Get`, `Is` or `Filter`), the same way as `archicad_call_tool`, and refuses any other. It is marked read-only, so a client can allow it without asking each time while still asking before `archicad_call_tool`. |
 | `archicad_get_job` | Gets a long-running job's result by handle, or lists recent jobs to recover a lost response. |
 
-`archicad_list_commands`, `archicad_get_command_schema` and `archicad_call_tool` are the original low-level interface. They are marked deprecated in favour of `archicad_query`/`archicad_mutate`, but remain the way to reach any command those two do not cover. Every tool carries MCP annotations (read-only, destructive, idempotent) so clients can ask for confirmation before changes.
+`archicad_list_commands`, `archicad_get_command_schema`, `archicad_call_tool` and `archicad_read_tool` are the original low-level interface. They are marked deprecated in favour of `archicad_query`/`archicad_mutate`, but remain the way to reach any command those two do not cover. Every tool carries MCP annotations (read-only, destructive, idempotent) so clients can ask for confirmation before changes.
 
 ---
 
@@ -177,7 +178,7 @@ Jobs remain available across HTTP client reconnects while the server is running,
 
 5. The AI works through the tools:
    - **Common element work:** `archicad_query(target="Wall", output=["id", "storyIndex"])` returns a `setId` and the requested fields, then `archicad_mutate(target_set=<setId>, action="highlight", payload={...})` changes those elements in one Undo step.
-   - **Anything else:** `archicad_list_commands` to find a command, `archicad_get_command_schema` to read its parameters, then `archicad_call_tool` with the command name, `port` and arguments.
+   - **Anything else:** `archicad_list_commands` to find a command, `archicad_get_command_schema` to read its parameters, then `archicad_read_tool` (for `Get…`, `Is…` and `Filter…` commands) or `archicad_call_tool` with the command name, `port` and arguments.
 
 `archicad_query` and `archicad_mutate` default to port 19723, Archicad's first API port, when no `port` is given.
 
@@ -239,7 +240,7 @@ The Caracara icon is this project's own artwork, a crested caracara; the full-si
 
 ## Contributing
 
-Issues and pull requests are welcome on the [Caracara repository](https://github.com/parikshit99/Caracara-Archicad-MCP). Please run the checks in [Development](#development) before opening a pull request.
+Issues and pull requests are welcome on the [Caracara repository](https://github.com/parikshit99/Caracara-Archicad-MCP). Please run the checks in [Development](#development) before opening a pull request. [ROADMAP.md](ROADMAP.md) lists what we plan to work on, and [docs/decisions.md](docs/decisions.md) why Caracara is built the way it is.
 
 ---
 

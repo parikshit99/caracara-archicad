@@ -25,7 +25,7 @@ from caracara_archicad_mcp.images import build_result, extract_images, to_tool_r
 from caracara_archicad_mcp.jobs import JobStore
 from caracara_archicad_mcp.pagination import PaginationRequest, prepare_result
 from caracara_archicad_mcp.request_lifecycle import DispatchLifecycle
-from caracara_archicad_mcp.safety import ensure_allowed
+from caracara_archicad_mcp.safety import ensure_allowed, is_reading_command
 from caracara_archicad_mcp.tools.custom.models import (
     CommandOverview,
     CommandSchema,
@@ -232,7 +232,8 @@ def archicad_get_command_schema(command_name: str) -> CommandSchema:
         "from discovery_list_active_archicads. For a 'next_page_token', repeat the call with 'page_token' added "
         "to 'arguments'. Long runs return status='running' and a jobHandle for archicad_get_job; after a lost "
         "response, list jobs with archicad_get_job() before retrying a write. Files Archicad writes are confined "
-        "to the server's output directory; relative paths are placed there."
+        "to the server's output directory; relative paths are placed there. For commands that only read "
+        "(Get..., Is..., Filter...) use archicad_read_tool instead, which clients can allow without asking."
     ),
     annotations=ToolAnnotations(
         readOnlyHint=False,
@@ -243,6 +244,34 @@ def archicad_get_command_schema(command_name: str) -> CommandSchema:
 )
 async def archicad_call_tool(name: str, arguments: dict) -> Annotated[CallToolResult, dict]:
     log.info(f"Executing archicad_call_tool for tool: {name}")
+    return await _call_command(name, arguments)
+
+
+@mcp.tool(
+    name="archicad_read_tool",
+    title="Execute Read-Only Archicad API Command",
+    description=(
+        "Runs a command that only reads (its Archicad name starts with Get, Is or Filter), exactly like "
+        "archicad_call_tool: 'name', 'arguments' with the 'port', paging and jobs work the same. Any other "
+        "command is refused; send it with archicad_call_tool. Prefer archicad_query when it covers the question."
+    ),
+    annotations=ToolAnnotations(
+        readOnlyHint=True,
+        destructiveHint=False,
+        idempotentHint=True,
+        openWorldHint=True,
+    ),
+)
+async def archicad_read_tool(name: str, arguments: dict) -> Annotated[CallToolResult, dict]:
+    log.info(f"Executing archicad_read_tool for tool: {name}")
+    get_tool_entry(name)
+    command = TOOL_DISCOVERY_CATALOG[name]["title"]
+    if not is_reading_command(command):
+        raise ToolError(f"'{command}' can change the project, its view or files; send it with archicad_call_tool.")
+    return await _call_command(name, arguments)
+
+
+async def _call_command(name: str, arguments: dict) -> CallToolResult:
 
     if "targetSetId" in arguments and arguments["targetSetId"] is not None:
         arguments = dict(arguments)
