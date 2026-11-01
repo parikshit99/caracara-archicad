@@ -2,7 +2,7 @@
   "manifest_version": "0.4",
   "name": "caracara-archicad",
   "display_name": "Archicad (Caracara)",
-  "version": "2026.10.1",
+  "version": "2026.11.0",
   "description": "Drive a running Archicad instance through the Tapir add-on and Archicad's JSON API.",
   "long_description": "Local MCP server for a running Archicad session. Discovers active instances, lists available Archicad API commands, retrieves each command's schema, and executes them.\n\nThis can create, modify, and delete elements; open, close, and save projects; export files (IFC, BCF, favorites); and send or receive Teamwork. Project names, paths, and model data are sent to the MCP client. Turn on read-only mode in the settings to let the AI look without changing anything. Requires Archicad open on this machine, and the Tapir Archicad Add-On for the full command set.",
   "author": {
