@@ -93,6 +93,30 @@
     {
       "name": "archicad_get_job",
       "description": "Retrieves a running or finished execution by handle, or lists retained jobs to recover a lost response."
+    },
+    {
+      "name": "archicad_query",
+      "description": "Finds elements by type, selection, classification or filter and returns a set handle, their count or the fields asked for."
+    },
+    {
+      "name": "archicad_mutate",
+      "description": "Changes, moves, rotates, highlights or deletes a set of elements as one Undo step, after checking for missing and locked elements; dry_run previews the change."
+    },
+    {
+      "name": "archicad_calculate",
+      "description": "Runs one read-only SQL query over the quantities and building materials of a set of elements, for exact totals."
+    },
+    {
+      "name": "archicad_project_overview",
+      "description": "Returns stories, units, layers, classification systems and north direction; private project details only on request."
+    },
+    {
+      "name": "archicad_spatial_query",
+      "description": "Finds elements near, inside or colliding with the elements of another set."
+    },
+    {
+      "name": "archicad_capture_view",
+      "description": "Returns a picture of the Archicad window or of one element. Offered only when pictures are allowed in the settings."
     }
   ],
   "compatibility": {

@@ -1,5 +1,10 @@
+import json
+from pathlib import Path
+
 from caracara_archicad_mcp.app import mcp
 from caracara_archicad_mcp.tools.custom import functions  # noqa: F401  registers the four MCP tools
+from caracara_archicad_mcp.tools.custom.capture import TOOL_NAME as CAPTURE_TOOL
+from caracara_archicad_mcp.tools.registration import register_all_tools
 
 # openWorldHint differs across the read-only tools: discovery reaches out to
 # whatever Archicad instances happen to be running, while the other two read
@@ -35,3 +40,12 @@ def test_call_tool_is_write_delete():
     assert annotations.destructive_hint is True
     assert annotations.idempotent_hint is False
     assert annotations.open_world_hint is True
+
+
+def test_manifest_lists_every_tool():
+    """REVIEW.md R21: the bundle's tool list, shown to users before they install, matches the server."""
+    register_all_tools()
+    manifest = json.loads((Path(__file__).resolve().parents[2] / "manifest.json").read_text(encoding="utf-8"))
+
+    # The server removes the capture tool at startup when images are off; the manifest lists it either way.
+    assert {tool["name"] for tool in manifest["tools"]} == set(_tools_by_name()) | {CAPTURE_TOOL}
