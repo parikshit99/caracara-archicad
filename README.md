@@ -79,17 +79,7 @@ The bundle can modify the open project, export files, and send or receive Teamwo
 
 </details>
 
-### 3. Plugin for Claude Code and Cowork
-
-The repository is also a Claude plugin: [`.claude-plugin/plugin.json`](.claude-plugin/plugin.json) starts the same server as the bundle, with the same three settings (all off by default), and adds a skill, [`working-in-archicad`](skills/working-in-archicad/SKILL.md), that teaches Claude to use the tools carefully: find a set first, dry-run every change, and keep project details private.
-
--   **Claude Code:** `claude --plugin-dir /path/to/Caracara-Archicad-MCP` loads it from a clone for one session.
--   **Cowork:** zip the clone and add it with *Customize › Plugins › Add › Upload plugin*. Cowork starts the server only when the session runs on the computer with Archicad, and uses the default settings.
--   **Ordinary Claude Desktop and claude.ai chats** do not run a plugin's local server; use the `.mcpb` bundle above there.
-
-Once it is listed in Anthropic's plugin directory, it installs and updates from there. What the plugin runs: `uv run --frozen` in the plugin's folder, which on first start downloads a Python and the dependencies pinned in `uv.lock`, then runs the server. The server talks only to Archicad on this computer and returns what its tools read to your AI client; it sends nothing anywhere else.
-
-### 4. Manual configuration
+### 3. Manual configuration
 
 Add the server to your client's configuration. For Claude Desktop the file is:
 
@@ -228,7 +218,7 @@ Every change, by a person or an AI agent, follows the rules in [REVIEW.md](REVIE
 
 -   **Every push and pull request to `master`** runs lint and format checks, a lock-file check, a check that generated tools match the generator, a `pip-audit` vulnerability audit of the locked dependencies, tests with at least 85% coverage on Windows, macOS and Linux with Python 3.12–3.14, and a package and MCPB bundle build.
 -   **Weekly build** (Fridays 03:30 UTC): when `master` has changed, runs the same gates and replaces the rolling [`weekly`](https://github.com/parikshit99/Caracara-Archicad-MCP/releases/tag/weekly) pre-release.
--   **Monthly stable release** (first Friday, 04:30 UTC): when `master` has changed, runs the gates, bumps the date-based version in `pyproject.toml`, `manifest.json`, `.claude-plugin/plugin.json` and `uv.lock`, tags it, and publishes a GitHub release with the wheel, sdist and `.mcpb` bundle.
+-   **Monthly stable release** (first Friday, 04:30 UTC): when `master` has changed, runs the gates, bumps the date-based version in `pyproject.toml`, `manifest.json` and `uv.lock`, tags it, and publishes a GitHub release with the wheel, sdist and `.mcpb` bundle.
 -   **Tapir command check** (Mondays 03:30 UTC): compares Tapir's latest release and `master` branch with the commands this server wraps or leaves out on purpose (`scripts/check_tapir_commands.py`). When Tapir has a command we lack, or drops one we call, it opens an issue and keeps it updated; the issue closes itself once we are back in sync.
 -   **Dependabot** opens weekly grouped updates for Python dependencies and GitHub Actions.
 

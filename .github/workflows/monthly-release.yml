@@ -116,7 +116,7 @@ jobs:
         with:
           python-version: "3.13"
           enable-cache: true
-      - name: Bump versions in pyproject.toml, manifest.json, plugin.json and uv.lock
+      - name: Bump versions in pyproject.toml, manifest.json and uv.lock
         run: |
           uv run --locked python scripts/release.py bump "$VERSION"
           uv run --locked python scripts/release.py check --tag "$TAG"

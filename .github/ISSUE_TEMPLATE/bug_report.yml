@@ -50,8 +50,6 @@ body:
       label: How Caracara is installed
       options:
         - .mcpb bundle in Claude Desktop
-        - Plugin in Claude Code
-        - Plugin in Cowork
         - Manual configuration (uvx or a clone)
         - Other
     validations:
