@@ -22,7 +22,7 @@ from mcp.types import ImageContent, ToolAnnotations
 
 from caracara_archicad_mcp.app import mcp
 from caracara_archicad_mcp.file_paths import confine_path
-from caracara_archicad_mcp.images import images_allowed
+from caracara_archicad_mcp.settings import images_allowed
 from caracara_archicad_mcp.tools.custom.element_sets import element_id
 from caracara_archicad_mcp.tools.custom.functions import call_and_wait, call_and_wait_result
 

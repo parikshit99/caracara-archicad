@@ -60,7 +60,8 @@ These are how Caracara works today, not bugs.
   `entire_drawing` makes no difference in a 3D window. With images switched off, pictures are
   left out of results and a note says so.
 - **A hand-installed bundle does not update itself.** Download the stable `.mcpb` again to
-  update. The weekly pre-release reports the version of the last stable release.
+  update. The weekly pre-release reports its own version, the stable version it builds on
+  followed by `+weekly`, its build date and commit.
 
 ## Reported by others, not yet checked
 

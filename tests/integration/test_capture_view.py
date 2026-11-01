@@ -11,7 +11,7 @@ import pytest
 from mcp.server.mcpserver.exceptions import ToolError
 
 from caracara_archicad_mcp import file_paths
-from caracara_archicad_mcp.images import images_allowed, set_images_allowed
+from caracara_archicad_mcp.settings import images_allowed, set_images_allowed
 from caracara_archicad_mcp.tools.custom import capture
 from caracara_archicad_mcp.tools.custom.capture import archicad_capture_view
 

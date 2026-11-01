@@ -8,7 +8,7 @@ import pytest
 from mcp.server.mcpserver.exceptions import ToolError
 from payloads import archicad_call_tool, archicad_read_tool
 
-from caracara_archicad_mcp import safety
+from caracara_archicad_mcp import safety, settings
 from caracara_archicad_mcp.result_registry import ResultRegistry
 from caracara_archicad_mcp.tools.custom.meta_verbs import archicad_mutate
 from caracara_archicad_mcp.tools.tool_registry import TOOL_DISCOVERY_CATALOG
@@ -27,10 +27,10 @@ def _ids(*guids: str) -> list[dict]:
 def clean_state(monkeypatch):
     monkeypatch.delenv("CARACARA_MCP_READ_ONLY", raising=False)
     monkeypatch.delenv("TAPIR_MCP_READ_ONLY", raising=False)
-    safety.set_read_only(None)
+    settings.set_read_only(None)
     ResultRegistry.clear()
     yield
-    safety.set_read_only(None)
+    settings.set_read_only(None)
     ResultRegistry.clear()
 
 
@@ -111,16 +111,16 @@ def test_every_registered_command_is_classified_as_expected(fake_archicad):
 @pytest.mark.parametrize("value", ["1", "true", "YES"])
 def test_environment_switches_read_only_on(monkeypatch, value):
     monkeypatch.setenv("CARACARA_MCP_READ_ONLY", value)
-    assert safety.read_only()
+    assert settings.read_only()
 
 
 def test_read_only_is_off_by_default():
-    assert not safety.read_only()
+    assert not settings.read_only()
 
 
 @pytest.mark.asyncio
 async def test_read_only_refuses_commands_that_change_the_project(fake_archicad):
-    safety.set_read_only(True)
+    settings.set_read_only(True)
     with pytest.raises(ToolError, match="read-only mode") as refusal:
         await archicad_call_tool(
             "elements_delete_elements", {"port": fake_archicad.port, "params": {"elements": _ids(WALL_1)}}
@@ -132,7 +132,7 @@ async def test_read_only_refuses_commands_that_change_the_project(fake_archicad)
 
 @pytest.mark.asyncio
 async def test_read_only_still_allows_reading(fake_archicad):
-    safety.set_read_only(True)
+    settings.set_read_only(True)
     fake_archicad.on_tapir_command("GetConnectedElements", hosts({}))
     result = await archicad_call_tool(
         "elements_get_connected_elements",
@@ -177,7 +177,7 @@ def test_only_reading_verbs_count_for_the_read_tool():
 @pytest.mark.asyncio
 @pytest.mark.parametrize(("action", "payload"), [("delete", None), ("move", {"vector": {"x": 1}})])
 async def test_read_only_refuses_mutations_before_contacting_archicad(fake_archicad, action, payload):
-    safety.set_read_only(True)
+    settings.set_read_only(True)
     with pytest.raises(ToolError, match=r"read-only mode.*archicad_mutate with dry_run=true"):
         await archicad_mutate(_ids(WALL_1), action, payload, port=fake_archicad.port, confirm=True)
     assert fake_archicad.calls == []
@@ -185,14 +185,14 @@ async def test_read_only_refuses_mutations_before_contacting_archicad(fake_archi
 
 @pytest.mark.asyncio
 async def test_read_only_allows_highlighting(fake_archicad):
-    safety.set_read_only(True)
+    settings.set_read_only(True)
     fake_archicad.on_tapir_command("HighlightElements", {"success": True})
     assert await archicad_mutate(_ids(WALL_1), "highlight", port=fake_archicad.port) == {"success": True}
 
 
 @pytest.mark.asyncio
 async def test_read_only_allows_dry_runs(fake_archicad):
-    safety.set_read_only(True)
+    settings.set_read_only(True)
     fake_archicad.on_tapir_command("FilterElements", {"elements": _ids(WALL_1)})
     fake_archicad.on_tapir_command("GetConnectedElements", hosts({}))
     report = await archicad_mutate(_ids(WALL_1), "delete", port=fake_archicad.port, dry_run=True)

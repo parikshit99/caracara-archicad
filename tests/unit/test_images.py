@@ -4,7 +4,8 @@ import json
 import pytest
 from mcp.types import CallToolResult
 
-from caracara_archicad_mcp.images import IMAGE_LEFT_OUT, set_images_allowed, to_tool_result
+from caracara_archicad_mcp.images import IMAGE_LEFT_OUT, to_tool_result
+from caracara_archicad_mcp.settings import set_images_allowed
 from caracara_archicad_mcp.tools.custom.functions import archicad_call_tool, archicad_get_job
 from caracara_archicad_mcp.tools.tool_registry import (
     TOOL_CALLABLE_REGISTRY,
