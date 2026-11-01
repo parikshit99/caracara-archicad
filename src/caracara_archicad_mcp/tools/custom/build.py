@@ -9,7 +9,7 @@ of the same build by its 'ref', because the wall's GUID exists only once Archica
 from __future__ import annotations
 
 from collections import Counter
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from mcp.server.mcpserver.exceptions import ToolError
@@ -19,7 +19,9 @@ from pydantic import ValidationError
 from caracara_archicad_mcp.app import mcp
 from caracara_archicad_mcp.result_registry import ResultRegistry
 from caracara_archicad_mcp.safety import ensure_allowed
+from caracara_archicad_mcp.tools.custom.element_sets import normalize_element_type
 from caracara_archicad_mcp.tools.custom.functions import call_and_collect, call_and_wait
+from caracara_archicad_mcp.tools.custom.mutation_checks import MAX_LISTED
 from caracara_archicad_mcp.tools.tool_registry import get_tool_entry
 from caracara_archicad_mcp.validation_errors import format_validation_error
 
@@ -37,18 +39,14 @@ ELEMENT_COMMANDS = {
 }
 HOSTED_TYPES = ("Door", "Window")
 MAX_ELEMENTS = 2000
-MAX_LISTED_FAILURES = 50
 # Stands in for a wall made earlier in the same build while its door or window is checked.
 _PENDING_HOST = {"guid": "00000000-0000-0000-0000-000000000000"}
 
-_TYPES = {name.lower(): name for name in ELEMENT_COMMANDS}
-
 
 def _element_type(item: dict[str, Any], index: int) -> str:
-    raw = str(item.get("type", "")).strip().lower()
-    for candidate in (raw, raw.removesuffix("s")):
-        if candidate in _TYPES:
-            return _TYPES[candidate]
+    element_type = normalize_element_type(str(item.get("type", "")))
+    if element_type in ELEMENT_COMMANDS:
+        return element_type
     raise ToolError(
         f"elements[{index}]: unknown type '{item.get('type')}'. Supported: {', '.join(ELEMENT_COMMANDS)}. "
         "Other elements are made with archicad_call_tool."
@@ -197,15 +195,7 @@ def _with_hosts(items: list[_Item], built: _Built) -> list[_Item]:
         if item.host_ref is None:
             ready.append(item)
         elif item.host_ref in built.refs:
-            ready.append(
-                _Item(
-                    item.index,
-                    item.element_type,
-                    item.ref,
-                    None,
-                    {**item.data, "ownerWallId": built.refs[item.host_ref]},
-                )
-            )
+            ready.append(replace(item, host_ref=None, data={**item.data, "ownerWallId": built.refs[item.host_ref]}))
         else:
             built.fail(item, {"message": f"its wall '{item.host_ref}' was not created"})
     return ready
@@ -221,9 +211,11 @@ async def _create(element_type: str, items: list[_Item], built: _Built, port: in
     answers = result.get("elements", []) if isinstance(result, dict) else []
     for position, item in enumerate(items):
         answer = answers[position] if position < len(answers) else {"error": {"message": "Archicad did not answer"}}
-        element_id = answer.get("elementId") if isinstance(answer, dict) else None
+        if not isinstance(answer, dict):
+            answer = {"error": answer}
+        element_id = answer.get("elementId")
         if element_id is None:
-            built.fail(item, answer.get("error", answer) if isinstance(answer, dict) else answer)
+            built.fail(item, answer.get("error", answer))
             continue
         built.created.append({"elementId": element_id})
         built.by_type[element_type] += 1
@@ -247,7 +239,7 @@ def _result(built: _Built, error: str | None = None) -> dict[str, Any]:
         response["refs"] = built.refs
     if built.failed:
         response["failedCount"] = len(built.failed)
-        response["failedElements"] = built.failed[:MAX_LISTED_FAILURES]
+        response["failedElements"] = built.failed[:MAX_LISTED]
     if error:
         response["complete"] = False
         response["error"] = f"Archicad stopped the build: {error}. What was made before that is in the set."

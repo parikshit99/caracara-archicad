@@ -127,13 +127,17 @@ def describe_hosted(hosted: list[dict[str, Any]]) -> str:
     return ", ".join(f"{count} {kind.lower()}{'s' if count != 1 else ''}" for kind, count in counts.items())
 
 
-async def confirmation_reasons(element_ids: list[dict[str, Any]], port: int, *, deletes: bool) -> str | None:
-    """Why a change needs the user's go-ahead: Archicad would skip some of its elements, or a delete would also
-    remove doors, windows, skylights or openings. None when it needs none."""
+async def confirmation_reasons(
+    element_ids: list[dict[str, Any]], port: int, *, deletes: bool
+) -> tuple[str | None, dict[str, Any]]:
+    """Why a change needs the user's go-ahead (Archicad would skip some of its elements, or a delete would also
+    remove doors, windows, skylights or openings), or None when it needs none; and the missing-element count
+    and warnings the check found, for the change's result."""
     # The client may ask again with the same text on a later round and match the answer to it, so the text
     # holds only counts that stay the same while the model does.
     reasons: list[str] = []
-    report, _ = await skipped_elements(element_ids, port)
+    report, warnings = await skipped_elements(element_ids, port)
+    found = {key: report[key] for key in ("missingCount",) if key in report} | {"warnings": warnings}
     skipped = report.get("missingCount", 0) + report.get("notEditableCount", 0)
     if skipped:
         reasons.append(
@@ -144,7 +148,7 @@ async def confirmation_reasons(element_ids: list[dict[str, Any]], port: int, *, 
         hosted, _ = await hosted_elements(element_ids, port)
         if hosted:
             reasons.append(f"Deleting them also deletes {describe_hosted(hosted)} placed in them.")
-    return " ".join(reasons) or None
+    return " ".join(reasons) or None, found
 
 
 async def preflight(

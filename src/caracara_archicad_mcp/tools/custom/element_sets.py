@@ -9,9 +9,22 @@ from __future__ import annotations
 from typing import Any
 
 from mcp.server.mcpserver.exceptions import ToolError
+from multiconn_archicad.models.tapir.types import ElementType
 
 from caracara_archicad_mcp.result_registry import ResultRegistry
 from caracara_archicad_mcp.tools.custom.functions import call_and_collect
+
+# Archicad's element type names by their lowercase spelling without underscores.
+_ELEMENT_TYPES = {element_type.value.lower(): element_type.value for element_type in ElementType}
+
+
+def normalize_element_type(target: str) -> str:
+    """'walls', 'Curtain_Walls', 'polyline' -> Archicad's own spelling ('Wall', 'CurtainWall', 'PolyLine')."""
+    key = target.strip().lower().replace("_", "")
+    for candidate in (key, key.removesuffix("es"), key.removesuffix("s")):
+        if candidate in _ELEMENT_TYPES:
+            return _ELEMENT_TYPES[candidate]
+    return target.strip()
 
 
 def element_id(elem: Any) -> dict[str, Any] | None:

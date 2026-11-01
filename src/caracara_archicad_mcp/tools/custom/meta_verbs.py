@@ -22,13 +22,12 @@ from mcp.server.mcpserver import (
 )
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
-from multiconn_archicad.models.tapir.types import ElementType
 from pydantic import BaseModel
 
 from caracara_archicad_mcp.app import mcp
 from caracara_archicad_mcp.result_registry import ResultRegistry
 from caracara_archicad_mcp.safety import ensure_allowed
-from caracara_archicad_mcp.tools.custom.element_sets import element_ids, target_elements
+from caracara_archicad_mcp.tools.custom.element_sets import element_ids, normalize_element_type, target_elements
 from caracara_archicad_mcp.tools.custom.functions import call_tool_payload, is_running
 from caracara_archicad_mcp.tools.custom.mutation_checks import (
     confirmation_reasons,
@@ -45,19 +44,6 @@ log = logging.getLogger(__name__)
 MAX_INLINE_ELEMENTS = 1000
 # Failed elements itemized in a mutation response; the rest are only counted.
 MAX_ITEMIZED_FAILURES = 50
-
-
-# Archicad's element type names by their lowercase spelling without underscores.
-_ELEMENT_TYPES = {element_type.value.lower(): element_type.value for element_type in ElementType}
-
-
-def _normalize_element_type(target: str) -> str:
-    """'walls', 'Curtain_Walls', 'polyline' -> Archicad's own spelling ('Wall', 'CurtainWall', 'PolyLine')."""
-    key = target.strip().lower().replace("_", "")
-    for candidate in (key, key.removesuffix("es"), key.removesuffix("s")):
-        if candidate in _ELEMENT_TYPES:
-            return _ELEMENT_TYPES[candidate]
-    return target.strip()
 
 
 def _itemize(result: Any, ids: list[dict[str, Any]], invalid: list[dict[str, Any]]) -> Any:
@@ -155,7 +141,7 @@ async def _find(target: str, filter: dict[str, Any] | None, port: int) -> _Found
         raw = await call_tool_payload("elements_filter_elements", {"port": port, "params": filter})
         return _from_receipt(raw, "Filtered")
 
-    element_type = _normalize_element_type(target)
+    element_type = normalize_element_type(target)
     params = {"elementType": element_type, **filters}
     raw = await call_tool_payload("elements_get_elements_by_type", {"port": port, "params": params})
     return _from_receipt(raw, element_type)
@@ -382,29 +368,36 @@ def _client_can_ask(ctx: Context) -> bool:
     return elicitation is not None and (elicitation.form is not None or elicitation.url is None)
 
 
+@dataclass
+class _Checked:
+    """The check before the change found nothing to ask the user about; what it found goes into the result."""
+
+    found: dict[str, Any]
+
+
 async def _ask_user(
     target_set: str | list[Any], action: str, port: int | None, dry_run: bool, ctx: Context
-) -> Elicit[_GoAhead] | bool | None:
+) -> Elicit[_GoAhead] | _Checked | None:
     """Ask the user directly before a change that needs their go-ahead, instead of trusting the AI's confirm=true.
 
-    None: the client cannot ask, so confirm decides. False: there is nothing to ask.
+    None: nothing was checked, because the client cannot ask or the call changes nothing it would ask about.
     """
     if not _client_can_ask(ctx):
         return None
     run_action = MUTATION_ACTIONS.get(action.strip().lower())
     if dry_run or run_action is None or run_action is _highlight:
-        return False
+        return None
     try:
         ensure_allowed(ACTION_COMMANDS[run_action], can_preview=True)
         ids, _ = element_ids(target_elements(target_set))
     except ToolError:
         # archicad_mutate raises the same error itself, so there is nothing to ask about.
-        return False
+        return None
     if not ids:
-        return False
-    reasons = await confirmation_reasons(ids, port or 19723, deletes=run_action is _delete)
+        return None
+    reasons, found = await confirmation_reasons(ids, port or 19723, deletes=run_action is _delete)
     if reasons is None:
-        return False
+        return _Checked(found)
     elements = f"{len(ids)} element{'s' if len(ids) != 1 else ''}"
     return Elicit(f"The AI wants to {action.strip().lower()} {elements} in Archicad. {reasons} Go ahead?", _GoAhead)
 
@@ -413,14 +406,18 @@ async def _ask_user(
 UserAnswer = AcceptedElicitation[Any] | DeclinedElicitation | CancelledElicitation | None
 
 
-def _confirmed(user_answer: UserAnswer, confirm: bool) -> bool | None:
-    """Whether a change that needs a go-ahead may go ahead; None when the user said no."""
+def _confirmed(user_answer: UserAnswer, confirm: bool) -> tuple[bool, dict[str, Any]] | None:
+    """Whether the change goes ahead without its own check, and what an earlier check found; None when the
+    user said no."""
     if isinstance(user_answer, DeclinedElicitation | CancelledElicitation):
         return None
-    if user_answer is None or user_answer.data is None:
-        return confirm
-    # The client asks its user, so only their answer counts, not the AI's confirm.
-    return isinstance(user_answer.data, _GoAhead)
+    data = user_answer.data if user_answer is not None else None
+    if isinstance(data, _Checked):
+        return True, data.found
+    if isinstance(data, _GoAhead):
+        return True, {}
+    # The client cannot ask its user, so the AI's confirm decides.
+    return confirm, {}
 
 
 DECLINED_BY_USER = {
@@ -490,13 +487,14 @@ async def archicad_mutate(
             deletes=run_action is _delete,
         )
         return {"dryRun": True, **report, **_set_age(target_set)}
-    confirm = _confirmed(user_answer, confirm)
-    if confirm is None:
+    decision = _confirmed(user_answer, confirm)
+    if decision is None:
         return {**DECLINED_BY_USER}
+    confirm, found = decision
     mutation = _Mutation(ids, invalid, set_id, payload, target_port, confirm)
     if run_action is _highlight:
         return await run_action(mutation)
-    checked = _set_age(target_set)
+    checked = _set_age(target_set) | found
     if not confirm and ids:
         report, warnings = await skipped_elements(ids, target_port)
         if held := _held_for_skipped(report, warnings, len(ids)):

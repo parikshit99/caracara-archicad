@@ -118,10 +118,15 @@ async def test_a_change_that_needs_no_go_ahead_is_not_asked_about(archicad, prot
     archicad.on_tapir_command("DeleteElements", {"executionResults": [{"success": True}]})
     user = User("decline")
 
-    await mutate(user, protocol, target_set=WALL, action="delete")
+    result = await mutate(user, protocol, target_set=WALL, action="delete")
 
     assert user.questions == []
     assert mutations(archicad) == ["DeleteElements"]
+    assert result["missingCount"] == 0
+    # The check that found nothing to ask is not run a second time by the change itself.
+    commands = [command for command, _ in archicad.calls]
+    assert commands.count("FilterElements") == 1
+    assert commands.count("GetConnectedElements") == 4
 
 
 @pytest.mark.parametrize(
