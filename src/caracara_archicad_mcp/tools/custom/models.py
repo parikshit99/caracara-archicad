@@ -50,6 +50,10 @@ class DiscoveryResult(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
+    caracara_version: str = Field(
+        alias="caracaraVersion",
+        description="The installed version of this server (Caracara). Mention it when the user reports a problem.",
+    )
     active: list[ReadyInstance] = Field(
         default_factory=list,
         alias="activeInstances",

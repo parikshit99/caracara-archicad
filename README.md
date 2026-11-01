@@ -33,7 +33,7 @@ The server is a bridge that lets AI agents and applications (Claude Desktop, Cla
 
 | Tool | Purpose |
 | :--- | :--- |
-| `discovery_list_active_archicads` | Lists running Archicad instances with their `port`, and instances that are unresponsive or missing the Tapir add-on. Warns when the installed Tapir version differs from the supported one. |
+| `discovery_list_active_archicads` | Lists running Archicad instances with their `port`, and instances that are unresponsive or missing the Tapir add-on. Reports the installed Caracara version and warns when the installed Tapir version differs from the supported one. |
 | `archicad_query` | Finds elements and reads their metadata. `target` is an element type (`Wall`, `Slab`, `Door`, ...) or `all`, `selected`, `classified`, `filter`. `output` is `set` (default: `setId` and count), `ids` (up to 1,000 element identifiers) or a list of field names. |
 | `archicad_mutate` | Changes the elements of a `setId` (or an explicit element list), as one Undo step per call. Actions: `set_property`, `move`, `rotate`, `set_details`, `highlight`, `delete`. Elements that no longer exist or cannot be changed, and a delete that would also remove hosted doors or windows, hold the change until `confirm=true`; elements Archicad still skips are reported in `failedElements`, with their Element IDs. Results give the set's age (`setAgeSeconds`) and `missingCount`. `dry_run=true` previews the change without making it. |
 | `archicad_calculate` | Runs one read-only SQL `SELECT` over a `setId` (or element list). Table `elements` has one row per element (`guid`, `element_id`, `type`, `story_index`, `story`, `layer` and Archicad's quantities such as `volume`, `gross_volume`, `length`, `area`); table `components` has one row per building-material skin (`material`, `volume`, `projected_area`, `is_core`, `is_finish`, plus the element's type, story and layer); a column's or beam's materials are counted on its segments when those are in the set too. Units are meters, square meters and cubic meters. Without `sql` it lists the available columns. |
@@ -63,6 +63,8 @@ If your client supports [MCP Bundles](https://github.com/modelcontextprotocol/mc
 
 -   **Stable:** [caracara-archicad.mcpb](https://github.com/parikshit99/Caracara-Archicad-MCP/releases/latest/download/caracara-archicad.mcpb) always downloads the latest release. Stable releases are published automatically on the first Friday of each month when `master` has changed, versioned by date (e.g. `2026.11.0`).
 -   **Weekly pre-release:** [caracara-archicad-weekly.mcpb](https://github.com/parikshit99/Caracara-Archicad-MCP/releases/download/weekly/caracara-archicad-weekly.mcpb) is rebuilt from `master` every Friday when it has changed, for trying unreleased changes ([release page](https://github.com/parikshit99/Caracara-Archicad-MCP/releases/tag/weekly)).
+
+**Updating.** A bundle you installed from a file does not update itself. To update, download the stable link above again and open it with your client, then restart the client. To see which version you have, look at the extension in your client's settings (Claude Desktop: *Settings › Extensions*), or ask the AI which Caracara version is installed. The weekly pre-release reports the version of the last stable release it builds on.
 
 The bundle can modify the open project, export files, and send or receive Teamwork changes, so treat installing it like handing your client your Archicad seat.
 

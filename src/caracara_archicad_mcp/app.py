@@ -2,6 +2,7 @@ import asyncio
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, suppress
+from importlib.metadata import PackageNotFoundError, version
 
 from mcp.server.mcpserver import MCPServer
 from multiconn_archicad import MultiConn
@@ -12,6 +13,12 @@ from caracara_archicad_mcp.jobs import JobSettings, JobStore
 
 log = logging.getLogger(__name__)
 job_settings = JobSettings()
+
+try:
+    CARACARA_VERSION = version("caracara-archicad-mcp")
+except PackageNotFoundError:
+    # Only when the source is run without installing the package.
+    CARACARA_VERSION = "unknown"
 
 
 class ArchicadMCPServer(MCPServer):
@@ -71,4 +78,4 @@ async def app_lifespan(server: MCPServer) -> AsyncIterator[None]:
         multi_conn_instance.clear()
 
 
-mcp = ArchicadMCPServer("Archicad Caracara MCP Server", lifespan=app_lifespan)
+mcp = ArchicadMCPServer("Archicad Caracara MCP Server", version=CARACARA_VERSION, lifespan=app_lifespan)
