@@ -9,3 +9,7 @@ async def archicad_call_tool(name: str, arguments: dict) -> dict:
 
 async def archicad_get_job(job_handle: str | None = None) -> dict:
     return (await functions.archicad_get_job(job_handle)).structured_content
+
+
+async def archicad_read_tool(name: str, arguments: dict) -> dict:
+    return (await functions.archicad_read_tool(name, arguments)).structured_content
