@@ -72,6 +72,14 @@ Check each of these after every upstream merge.
   with `archicad_call_tool`. Highlighting and window pictures stay there too, because they change
   the view or write a file (R17).
 
+- **`archicad_build` for new elements** (2026-11-01, Caracara). Making elements through
+  `archicad_call_tool` had no dry run, no checks before the first element was made, and no set of
+  what was made. The build tool checks the whole list against the create commands' schemas and the
+  project's stories first, and returns one set of everything made. Archicad makes each create
+  command its own Undo step and the API cannot group them, so a build is one Undo step per element
+  type; one `archicad_mutate` delete of the set removes it all. Creating adds and destroys nothing,
+  so the tool is not marked destructive (R17).
+
 ### Privacy and tokens
 
 - **Pictures are off by default** (2026-10-23, Caracara). The screenshot tool is offered only
@@ -92,7 +100,9 @@ Check each of these after every upstream merge.
 - **Running scripts the AI writes** (2026-11-01, seen in alesdev88). There is no sandbox, so a
   script could do anything the user can.
 - **Building a model from photos** (2026-10-24, Caracara). A photo has no scale and hides most of
-  a building; the AI works from dimensions, plans or surveys instead.
+  a building; the AI works from dimensions, plans or surveys instead. Reopened 2026-11-01 by the
+  maintainer: `archicad_build` is the first step, and a guided workflow from pictures and drawings
+  is on the roadmap.
 
 ### Releases
 

@@ -233,7 +233,9 @@ def archicad_get_command_schema(command_name: str) -> CommandSchema:
         "to 'arguments'. Long runs return status='running' and a jobHandle for archicad_get_job; after a lost "
         "response, list jobs with archicad_get_job() before retrying a write. Files Archicad writes are confined "
         "to the server's output directory; relative paths are placed there. For commands that only read "
-        "(Get..., Is..., Filter...) use archicad_read_tool instead, which clients can allow without asking."
+        "(Get..., Is..., Filter...) use archicad_read_tool instead, which clients can allow without asking. "
+        "To create walls, columns, beams, slabs, roofs, zones, doors or windows, use archicad_build, which "
+        "checks the whole list first and returns one set of what it made."
     ),
     annotations=ToolAnnotations(
         readOnlyHint=False,

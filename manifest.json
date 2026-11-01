@@ -103,6 +103,10 @@
       "description": "Changes, moves, rotates, highlights or deletes a set of elements as one Undo step, after checking for missing and locked elements; dry_run previews the change."
     },
     {
+      "name": "archicad_build",
+      "description": "Creates walls, columns, beams, slabs, roofs, zones, doors and windows from one checked list, with a dry run, and returns everything made as one set."
+    },
+    {
       "name": "archicad_calculate",
       "description": "Runs one read-only SQL query over the quantities and building materials of a set of elements, for exact totals."
     },
