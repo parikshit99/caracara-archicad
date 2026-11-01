@@ -21,7 +21,12 @@ WINDOW_IMAGE_COMMANDS = frozenset({"SaveCurrentWindowAsImage"})
 # Commands allowed in read-only mode besides the reading verbs, each reviewed by name.
 REVIEWED_COMMANDS = DISPLAY_ONLY_COMMANDS | WINDOW_IMAGE_COMMANDS
 
+# Commands that end the open project and discard whatever was not saved. Archicad cannot report unsaved
+# changes, so they stay refused until the user allows them.
+SESSION_COMMANDS = frozenset({"CloseProject", "NewProject"})
+
 _read_only: bool | None = None
+_session_commands_allowed: bool | None = None
 
 
 def set_read_only(enabled: bool | None) -> None:
@@ -34,6 +39,19 @@ def read_only() -> bool:
     if _read_only is not None:
         return _read_only
     value = os.environ.get("CARACARA_MCP_READ_ONLY") or os.environ.get("TAPIR_MCP_READ_ONLY") or ""
+    return value.strip().lower() in ("1", "true", "yes")
+
+
+def set_session_commands_allowed(allowed: bool | None) -> None:
+    """Allow or forbid the commands that close or replace the open project (None falls back to the environment)."""
+    global _session_commands_allowed
+    _session_commands_allowed = allowed
+
+
+def session_commands_allowed() -> bool:
+    if _session_commands_allowed is not None:
+        return _session_commands_allowed
+    value = os.environ.get("CARACARA_MCP_ALLOW_SESSION_COMMANDS") or ""
     return value.strip().lower() in ("1", "true", "yes")
 
 
@@ -52,6 +70,12 @@ def ensure_allowed(command: str, *, can_preview: bool = False) -> None:
 
     can_preview: the command is an archicad_mutate action, which a dry run can preview instead.
     """
+    if command.removeprefix("API.") in SESSION_COMMANDS and not session_commands_allowed():
+        raise ToolError(
+            f"'{command}' closes or replaces the open project and Archicad discards unsaved changes, so it is "
+            "switched off. Only the user can allow it, with --allow-session-commands or the matching setting. "
+            "Ask the user to save the project and close or create it themselves."
+        )
     if read_only() and not is_read_only_command(command):
         preview = " To preview this change, call archicad_mutate with dry_run=true." if can_preview else ""
         raise ToolError(

@@ -41,7 +41,8 @@
       ],
       "env": {
         "CARACARA_MCP_READ_ONLY": "${user_config.read_only}",
-        "CARACARA_MCP_ALLOW_IMAGES": "${user_config.allow_images}"
+        "CARACARA_MCP_ALLOW_IMAGES": "${user_config.allow_images}",
+        "CARACARA_MCP_ALLOW_SESSION_COMMANDS": "${user_config.allow_session_commands}"
       }
     }
   },
@@ -57,6 +58,13 @@
       "type": "boolean",
       "title": "Allow pictures of the design",
       "description": "Let the AI take screenshots of Archicad to check its work. The pictures are uploaded to your AI provider. They help the AI check its work, but each picture uses more tokens and more of the conversation's context. Off by default.",
+      "default": false,
+      "required": false
+    },
+    "allow_session_commands": {
+      "type": "boolean",
+      "title": "Allow closing and replacing the open project",
+      "description": "Let the AI close the open project or start a new one. Archicad discards any unsaved changes when that happens, and the AI cannot tell whether you have unsaved work. Off by default; read-only mode still blocks these commands.",
       "default": false,
       "required": false
     }

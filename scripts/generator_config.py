@@ -85,8 +85,6 @@ TAPIR_CONFIG = ApiSourceConfig(
     },
     commands_to_exclude={
         "QuitArchicad",  # Can lose unsaved work; easy to quit manually
-        "CloseProject",  # Can lose unsaved work; easy to close manually
-        "NewProject",  # Discards unsaved work; use the application UI
         "GenerateDocumentation",  # Internal use only
         "ShowScriptUI",  # Application UI workflow
         "GetScriptUIResult",  # Companion to ShowScriptUI

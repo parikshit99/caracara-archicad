@@ -16,7 +16,7 @@ from caracara_archicad_mcp.images import set_images_allowed
 from caracara_archicad_mcp.jobs import JobSettings
 from caracara_archicad_mcp.logging_config import setup_logging
 from caracara_archicad_mcp.middleware import BearerTokenMiddleware
-from caracara_archicad_mcp.safety import set_read_only
+from caracara_archicad_mcp.safety import set_read_only, set_session_commands_allowed
 from caracara_archicad_mcp.tools.custom.capture import TOOL_NAME as CAPTURE_TOOL
 
 setup_logging()
@@ -124,6 +124,12 @@ def parse_args() -> argparse.Namespace:
         default=str(_env("ALLOW_IMAGES", "")).lower() in ("1", "true", "yes"),
         help="Offer archicad_capture_view, which sends pictures of the design to the AI provider (off by default).",
     )
+    parser.add_argument(
+        "--allow-session-commands",
+        action="store_true",
+        default=str(_env("ALLOW_SESSION_COMMANDS", "")).lower() in ("1", "true", "yes"),
+        help="Allow CloseProject and NewProject, which discard unsaved changes (off by default).",
+    )
     return parser.parse_args()
 
 
@@ -176,6 +182,7 @@ def main():
     check_bind_host(args)
     set_output_root(args.output_root)
     set_read_only(args.read_only)
+    set_session_commands_allowed(args.allow_session_commands)
     if args.read_only:
         logging.info("Read-only mode: commands that could change the project are refused.")
     configure_images(args.allow_images)

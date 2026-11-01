@@ -13,6 +13,7 @@ from multiconn_archicad.models.tapir.commands import (
     GetHotlinkProxyElementTableParameters,
     GetNoteAutoTextKeywordsParameters,
     GetProjectPreferencesParameters,
+    NewProjectParameters,
     OpenProjectParameters,
     PrintViewParameters,
     RebuildViewParameters,
@@ -72,6 +73,20 @@ register_tool_for_dispatch(
         "with UpdateHotlinks to re-read the content."
     ),
     params_model=ChangeHotlinkNodesParameters,
+)
+
+
+def close_project(conn_header: ConnHeader) -> dict:
+    """Closes the currently opened project."""
+    return conn_header.core.post_tapir_command(command="CloseProject", parameters={})
+
+
+register_tool_for_dispatch(
+    close_project,
+    name="project_close_project",
+    title="CloseProject",
+    description="Closes the currently opened project.",
+    params_model=None,
 )
 
 
@@ -426,6 +441,30 @@ register_tool_for_dispatch(
         "coordinate system, row by row, and its inverse when it is invertible. Read only. Available from Archicad 27."
     ),
     params_model=None,
+)
+
+
+def new_project(conn_header: ConnHeader, params: NewProjectParameters) -> dict:
+    """
+    Starts a new, untitled project from the template set in Archicad's New Project settings, as File > New does; with
+    newAndReset also the working environment is reset, as New and Reset All does. The unsaved changes of the open
+    project are discarded, as with OpenProject.
+    """
+    return conn_header.core.post_tapir_command(
+        command="NewProject", parameters=params.model_dump(mode="json", by_alias=True, exclude_none=True)
+    )
+
+
+register_tool_for_dispatch(
+    new_project,
+    name="project_new_project",
+    title="NewProject",
+    description=(
+        "Starts a new, untitled project from the template set in Archicad's New Project settings, as File > New does; "
+        "with newAndReset also the working environment is reset, as New and Reset All does. The unsaved changes of the "
+        "open project are discarded, as with OpenProject."
+    ),
+    params_model=NewProjectParameters,
 )
 
 
