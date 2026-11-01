@@ -94,6 +94,16 @@ Check each of these after every upstream merge.
   stay in the server behind a `setId`, so large selections do not fill the conversation.
   Sets are snapshots and do not follow later changes in Archicad; results report the set's age
   and how many of its elements no longer exist.
+- **One privacy page and private security reports** (2026-11-01, Caracara). PRIVACY.md says in
+  one place what reaches the AI provider, what stays on the computer (including the local log
+  file) and which connections are made. Issues are
+  public, so the bug form asks for no project data, and security problems go to GitHub's private
+  reporting (SECURITY.md).
+- **Guidance in two sizes** (2026-11-01, maintainer). The server sends every client about 220
+  words of instructions (`instructions.py`): the order of calls, dry runs, totals from
+  `archicad_calculate`, privacy. They go into every conversation, so a test holds them to 250
+  words. The full guidance is the `working-in-archicad` skill, which users add themselves and
+  which loads only when needed. A test fails if either names a tool the server does not have.
 
 ### Not doing
 
@@ -103,19 +113,15 @@ Check each of these after every upstream merge.
   a building; the AI works from dimensions, plans or surveys instead. Reopened 2026-11-01 by the
   maintainer: `archicad_build` is the first step, and a guided workflow from pictures and drawings
   is on the roadmap.
+- **Listing in Anthropic's directory** (2026-11-01, maintainer). The directory no longer takes
+  `.mcpb` bundles, only Claude plugins, and a plugin's local server runs in Claude Code and
+  Cowork but not in ordinary Claude Desktop chats. A plugin version was built and merged, then
+  withdrawn by the maintainer; Caracara ships as the `.mcpb` bundle and manual configuration.
+  Its skill was kept, on its own (see "Guidance in two sizes").
 
 ### Releases
 
 - **Report the installed version** (2026-11-01, Caracara). The server tells clients its own version,
   and `discovery_list_active_archicads` returns it as `caracaraVersion`.
 - **No built-in update check** (2026-11-01, Caracara). It would make every user's computer call
-  GitHub (R13). A hand-installed bundle is updated by downloading it again; listing the plugin in
-  Anthropic's directory is on the roadmap.
-- **A Claude plugin beside the `.mcpb`** (2026-11-01, Caracara). Anthropic's directory no longer
-  takes `.mcpb` bundles, only plugins, so the repository is also a plugin: `plugin.json` starts
-  the same server with the same settings and adds the `working-in-archicad` skill. The server is
-  declared in `plugin.json`, not in a root `.mcp.json`, which Claude Code would also offer as a
-  project server to everyone who opens the repository. A plugin's local server runs in Claude
-  Code and Cowork but not in ordinary chats, so the `.mcpb` stays for Claude Desktop.
-  `scripts/release.py` gives both manifests the package version, and `tests/unit/test_plugin.py`
-  keeps the plugin's server, settings and skill in step with the bundle and the tools.
+  GitHub (R13). A hand-installed bundle is updated by downloading it again.

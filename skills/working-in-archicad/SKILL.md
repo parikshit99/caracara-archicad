@@ -11,10 +11,9 @@ what the task needs and change nothing they have not agreed to.
 
 ## When the tools are missing
 
-The tools come from a server that runs on the user's computer. Claude Code and Cowork start it
-from this plugin; ordinary claude.ai and Claude Desktop chats do not run a plugin's local
-server. If no `archicad_` tools are available, say so, and point the user to the `.mcpb` bundle
-for Claude Desktop (https://github.com/parikshit99/Caracara-Archicad-MCP#installation--setup).
+This skill only teaches how to use the tools; they come from the Caracara server, which runs on
+the computer with Archicad. If no `archicad_` tools are available, say so, and point the user to
+the installation guide (https://github.com/parikshit99/Caracara-Archicad-MCP#installation--setup).
 Do not describe the model as if you had read it.
 
 ## Start every task the same way

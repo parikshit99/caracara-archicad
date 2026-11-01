@@ -42,8 +42,8 @@ Problems the live test found, all fixed since:
   a live Archicad: how doors are placed along their wall, and which tool defaults fill the
   fields a build leaves out.
 - **Session commands.** `CloseProject` and `NewProject` behind `--allow-session-commands`.
-- **The Claude plugin.** It passes `claude plugin validate`, and Claude Code on Linux starts its
-  server; it has not been run with Archicad, on Windows, or in Cowork.
+- **Server instructions and the skill.** Which clients show the server's instructions to the AI,
+  and whether the AI follows them and the `working-in-archicad` skill on a live project.
 
 ## Known limits
 
