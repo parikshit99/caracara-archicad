@@ -9,7 +9,9 @@ import uvicorn
 from mcp import Client, ClientSession
 from mcp.client.sse import sse_client
 
-from caracara_archicad_mcp.app import mcp
+from caracara_archicad_mcp.app import CARACARA_VERSION, mcp
+
+EMPTY_DISCOVERY = {"caracaraVersion": CARACARA_VERSION, "activeInstances": [], "unavailableInstances": []}
 
 
 def get_free_port() -> int:
@@ -44,7 +46,7 @@ async def test_tool_execution_in_memory():
 
         # Execute a tool (hits our mock_heavy_dependencies fixture)
         result = await client.call_tool("discovery_list_active_archicads")
-        assert result.structured_content == {"activeInstances": [], "unavailableInstances": []}
+        assert result.structured_content == EMPTY_DISCOVERY
 
 
 @pytest.mark.asyncio
@@ -73,7 +75,8 @@ async def test_live_tool_call_over_sse():
         async with sse_client(url) as (read_stream, write_stream):
             async with ClientSession(read_stream, write_stream) as session:
                 # Initialize the MCP connection session
-                await session.initialize()
+                initialized = await session.initialize()
+                assert initialized.server_info.version == CARACARA_VERSION
 
                 # Execute 'discovery_list_active_archicads' via the live network
                 result = await session.call_tool("discovery_list_active_archicads", arguments={})
@@ -81,7 +84,7 @@ async def test_live_tool_call_over_sse():
                 # Verify that we successfully received a response matching our mocked state
                 assert result.is_error is False
                 payload = json.loads(result.content[0].text)
-                assert payload == {"activeInstances": [], "unavailableInstances": []}
+                assert payload == EMPTY_DISCOVERY
     finally:
         # Cleanly signal the Uvicorn server to shutdown and wait for the task to exit
         server.should_exit = True

@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+from importlib import metadata
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import Mock
@@ -34,6 +37,7 @@ from caracara_archicad_mcp.tools.custom.models import (
 )
 from caracara_archicad_mcp.tools.tool_registry import get_tool_entry, register_tool_for_dispatch
 
+MANIFEST = Path(__file__).resolve().parents[2] / "manifest.json"
 # ============================================================================
 # Helpers & Fixtures
 # ============================================================================
@@ -207,6 +211,15 @@ def test_empty_instance_discovery(set_multi_conn):
     result = list_active_archicads()
     assert isinstance(result, DiscoveryResult)
     assert result.active == [] and result.unavailable == []
+
+
+def test_discovery_reports_the_installed_caracara_version(set_multi_conn):
+    set_multi_conn({})
+
+    result = list_active_archicads()
+
+    assert result.caracara_version == metadata.version("caracara-archicad-mcp")
+    assert result.caracara_version == json.loads(MANIFEST.read_text(encoding="utf-8"))["version"]
 
 
 @pytest.mark.parametrize(

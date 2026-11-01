@@ -18,7 +18,7 @@ from multiconn_archicad import (
 from multiconn_archicad.errors import AddOnCommandUnavailable, APIErrorBase
 from pydantic import ValidationError
 
-from caracara_archicad_mcp.app import mcp
+from caracara_archicad_mcp.app import CARACARA_VERSION, mcp
 from caracara_archicad_mcp.context import job_store_instance, multi_conn_instance
 from caracara_archicad_mcp.file_paths import confine_write_paths
 from caracara_archicad_mcp.images import build_result, extract_images, to_tool_result
@@ -91,6 +91,7 @@ def list_active_archicads() -> DiscoveryResult:
 
     log.info(f"Discovery complete: {len(active_instances)} ready, {len(unavailable_instances)} unavailable.")
     return DiscoveryResult(
+        caracaraVersion=CARACARA_VERSION,
         activeInstances=active_instances,
         unavailableInstances=unavailable_instances,
     )
