@@ -15,6 +15,7 @@ Every change must follow the rules in [REVIEW.md](REVIEW.md). They are imported 
 | :--- | :--- |
 | `src/caracara_archicad_mcp/server.py` | Command-line options and environment variables, startup. |
 | `src/caracara_archicad_mcp/settings.py` | The user's switches (read-only, images, session commands) and reading `CARACARA_MCP_` variables. |
+| `src/caracara_archicad_mcp/user_questions.py` | Asking the user in their client (MCP elicitation) before what they should decide, and the `confirm` fallback. |
 | `src/caracara_archicad_mcp/app.py`, `context.py` | The MCP server instance and its shared state. |
 | `tools/generated/` | One wrapper per Archicad command, written by `scripts/generate_tools.py`. **Never edit by hand.** |
 | `tools/overrides.py` | Hand-written behaviour layered over generated commands. |

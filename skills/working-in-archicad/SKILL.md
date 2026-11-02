@@ -55,6 +55,9 @@ Do not describe the model as if you had read it.
 - For anything else, find the command with `archicad_list_commands`, read its arguments with
   `archicad_get_command_schema`, and do not guess fields. Send commands that only read (`Get…`,
   `Is…`, `Filter…`) with `archicad_read_tool`, and the rest with `archicad_call_tool`.
+- Teamwork send and receive, reserving and releasing, saving, opening a project, publishing and
+  printing cannot be undone. Ask the user first, then add `"confirm": true` to the arguments. In
+  clients that can ask the user directly, Caracara asks them itself and `confirm` does not count.
 - A long command returns a `jobHandle`; follow it with `archicad_get_job`. After a lost
   response, call `archicad_get_job` with no handle to see whether the command ran before you
   send a change again. Never send the same change twice to be safe.

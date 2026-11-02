@@ -12,17 +12,9 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Annotated, Any
 
-from mcp.server.mcpserver import (
-    AcceptedElicitation,
-    CancelledElicitation,
-    Context,
-    DeclinedElicitation,
-    Elicit,
-    Resolve,
-)
+from mcp.server.mcpserver import CancelledElicitation, Context, DeclinedElicitation, Elicit, Resolve
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
-from pydantic import BaseModel
 
 from caracara_archicad_mcp.app import mcp
 from caracara_archicad_mcp.result_registry import ResultRegistry
@@ -37,6 +29,7 @@ from caracara_archicad_mcp.tools.custom.mutation_checks import (
     preflight,
     skipped_elements,
 )
+from caracara_archicad_mcp.user_questions import GoAhead, UserAnswer, client_can_ask
 
 log = logging.getLogger(__name__)
 
@@ -357,17 +350,6 @@ ACTION_COMMANDS = {
 }
 
 
-class _GoAhead(BaseModel):
-    """The user's answer when asked before a change: accepting the question is the go-ahead."""
-
-
-def _client_can_ask(ctx: Context) -> bool:
-    """True when the client can show the user a question (MCP form elicitation)."""
-    elicitation = ctx.client_capabilities.elicitation if ctx.client_capabilities else None
-    # A client from before elicitation modes declares the capability empty, which means forms.
-    return elicitation is not None and (elicitation.form is not None or elicitation.url is None)
-
-
 @dataclass
 class _Checked:
     """The check before the change found nothing to ask the user about; what it found goes into the result."""
@@ -377,12 +359,12 @@ class _Checked:
 
 async def _ask_user(
     target_set: str | list[Any], action: str, port: int | None, dry_run: bool, ctx: Context
-) -> Elicit[_GoAhead] | _Checked | None:
+) -> Elicit[GoAhead] | _Checked | None:
     """Ask the user directly before a change that needs their go-ahead, instead of trusting the AI's confirm=true.
 
     None: nothing was checked, because the client cannot ask or the call changes nothing it would ask about.
     """
-    if not _client_can_ask(ctx):
+    if not client_can_ask(ctx):
         return None
     run_action = MUTATION_ACTIONS.get(action.strip().lower())
     if dry_run or run_action is None or run_action is _highlight:
@@ -399,11 +381,7 @@ async def _ask_user(
     if reasons is None:
         return _Checked(found)
     elements = f"{len(ids)} element{'s' if len(ids) != 1 else ''}"
-    return Elicit(f"The AI wants to {action.strip().lower()} {elements} in Archicad. {reasons} Go ahead?", _GoAhead)
-
-
-# What _ask_user found: the user's answer, or a plain value when nobody was asked.
-UserAnswer = AcceptedElicitation[Any] | DeclinedElicitation | CancelledElicitation | None
+    return Elicit(f"The AI wants to {action.strip().lower()} {elements} in Archicad. {reasons} Go ahead?", GoAhead)
 
 
 def _confirmed(user_answer: UserAnswer, confirm: bool) -> tuple[bool, dict[str, Any]] | None:
@@ -414,7 +392,7 @@ def _confirmed(user_answer: UserAnswer, confirm: bool) -> tuple[bool, dict[str, 
     data = user_answer.data if user_answer is not None else None
     if isinstance(data, _Checked):
         return True, data.found
-    if isinstance(data, _GoAhead):
+    if isinstance(data, GoAhead):
         return True, {}
     # The client cannot ask its user, so the AI's confirm decides.
     return confirm, {}

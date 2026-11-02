@@ -25,6 +25,38 @@ REVIEWED_COMMANDS = DISPLAY_ONLY_COMMANDS | WINDOW_IMAGE_COMMANDS
 # changes, so they stay refused until the user allows them.
 SESSION_COMMANDS = frozenset({"CloseProject", "NewProject"})
 
+_RESERVATION = "changes what other Teamwork users can edit and cannot be undone"
+# Commands Archicad's Undo cannot take back, or that reach other people; each runs only with the user's go-ahead.
+IRREVERSIBLE_COMMANDS = {
+    "TeamworkSend": "sends your changes to the rest of the Teamwork team and cannot be undone",
+    "TeamworkReceive": "brings in the team's changes and cannot be undone",
+    **dict.fromkeys(
+        (
+            "ReserveElements",
+            "ReleaseElements",
+            "ReserveLockableObjectSet",
+            "ReleaseLockableObjectSet",
+            "ReserveHotlinkCacheManagement",
+            "ReleaseHotlinkCacheManagement",
+            "ReserveProjectData",
+            "ReleaseProjectData",
+            "RequestProjectData",
+            "GrantElements",
+            "GrantProjectData",
+        ),
+        _RESERVATION,
+    ),
+    "SaveProject": "overwrites the project file and cannot be undone",
+    "OpenProject": "replaces the open project in this Archicad",
+    "PublishPublisherSet": "publishes drawings, possibly to other people, and cannot be undone",
+    "PrintView": "prints on paper",
+}
+
+
+def irreversible_reason(command: str) -> str | None:
+    """Why the Archicad command cannot be taken back, or None when Undo can take it back."""
+    return IRREVERSIBLE_COMMANDS.get(command.removeprefix("API."))
+
 
 def is_reading_command(command: str) -> bool:
     """True when the Archicad command (e.g. 'GetLayers', 'API.GetAllElements') only reads the model."""

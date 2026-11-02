@@ -4,6 +4,7 @@ import logging
 import time
 from typing import Annotated, Any
 
+from mcp.server.mcpserver import Resolve
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import CallToolResult, ToolAnnotations
 from multiconn_archicad import (
@@ -40,6 +41,7 @@ from caracara_archicad_mcp.tools.tool_registry import (
     get_tool_entry,
     get_tool_input_schema,
 )
+from caracara_archicad_mcp.user_questions import UserAnswer, ask_before_irreversible, confirmed_arguments
 from caracara_archicad_mcp.validation_errors import format_validation_error
 
 log = logging.getLogger()
@@ -244,9 +246,11 @@ def archicad_get_command_schema(command_name: str) -> CommandSchema:
         openWorldHint=True,
     ),
 )
-async def archicad_call_tool(name: str, arguments: dict) -> Annotated[CallToolResult, dict]:
+async def archicad_call_tool(
+    name: str, arguments: dict, user_answer: Annotated[UserAnswer, Resolve(ask_before_irreversible)] = None
+) -> Annotated[CallToolResult, dict]:
     log.info(f"Executing archicad_call_tool for tool: {name}")
-    return await _call_command(name, arguments)
+    return await _call_command(name, confirmed_arguments(name, arguments, user_answer))
 
 
 @mcp.tool(
