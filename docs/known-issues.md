@@ -52,8 +52,11 @@ These are how Caracara works today, not bugs.
 - **Element sets are snapshots.** A `setId` keeps the elements found at query time. Elements
   drawn later are not in it, and deleted ones are reported as missing. Results give the set's
   age (`setAgeSeconds`); query again when it matters. Unused sets expire after an hour.
-- **`inside` uses bounding boxes.** `archicad_spatial_query(relation="inside")` can count an
-  element just outside an L-shaped or diagonal zone. `collides` uses Archicad's exact check.
+- **`inside` is exact only for zones and slabs with straight edges.** `archicad_spatial_query(relation="inside")`
+  tests those by their plan outline and holes. Containers with curved edges, and every other
+  element type, are tested by their bounding box, which can count an element just outside a
+  curved or diagonal container. An element counts by the center of its bounding box. `collides`
+  uses Archicad's exact check. Not yet checked against a live Archicad.
 - **No custom properties in calculations.** `archicad_calculate` has element details and
   Archicad's quantities, but not user-defined properties such as fire ratings or cost codes.
 - **Screenshots are for context.** The AI cannot judge exact sizes or positions from a picture.

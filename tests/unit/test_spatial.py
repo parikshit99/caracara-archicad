@@ -7,7 +7,7 @@ import random
 import pytest
 
 from caracara_archicad_mcp import spatial
-from caracara_archicad_mcp.spatial import Box, GridIndex, containers_of, pairs_within
+from caracara_archicad_mcp.spatial import Box, GridIndex, Outline, containers_of, pairs_within
 
 
 def _random_boxes(rng: random.Random, count: int, prefix: str, slabs: int = 0) -> list[Box]:
@@ -73,3 +73,42 @@ def test_huge_boxes_stay_out_of_the_grid():
 def test_empty_inputs():
     assert pairs_within([], [Box("b", 0, 0, 0, 1, 1, 1)], 1.0, keep=5).pair_count == 0
     assert containers_of([Box("a", 0, 0, 0, 1, 1, 1)], []) == {}
+
+
+# An L-shaped room: 6 x 6 m with the 4 x 4 m corner at the top right cut away.
+L_SHAPE = [(0, 0), (6, 0), (6, 2), (2, 2), (2, 6), (0, 6)]
+
+
+@pytest.mark.parametrize(
+    ("point", "inside"),
+    [
+        ((1, 1), True),
+        ((5, 1), True),
+        ((1, 5), True),
+        ((4, 4), False),  # in the cut-away corner, though inside the room's bounding box
+        ((2, 4), True),  # on an edge
+        ((6, 2), True),  # on a corner
+        ((7, 1), False),
+    ],
+)
+def test_outline_tells_an_l_shaped_room_from_its_box(point, inside):
+    assert Outline(L_SHAPE).contains(point) is inside
+
+
+def test_outline_leaves_out_its_holes_but_not_their_edges():
+    slab = Outline([(0, 0), (10, 0), (10, 10), (0, 10)], holes=[[(4, 4), (6, 4), (6, 6), (4, 6)]])
+    assert slab.contains((2, 2))
+    assert not slab.contains((5, 5))
+    assert slab.contains((4, 5))
+
+
+def test_inside_uses_a_containers_outline_where_it_has_one():
+    room = Box("room", 0, 0, 0, 6, 6, 3)
+    in_arm, in_corner, too_high = (
+        Box("arm", 0.5, 0.5, 0, 1.5, 1.5, 1),
+        Box("corner", 3.5, 3.5, 0, 4.5, 4.5, 1),
+        Box("high", 0.5, 0.5, 5, 1.5, 1.5, 6),
+    )
+
+    assert set(containers_of([in_arm, in_corner, too_high], [room])) == {"arm", "corner"}
+    assert set(containers_of([in_arm, in_corner, too_high], [room], {"room": Outline(L_SHAPE)})) == {"arm"}

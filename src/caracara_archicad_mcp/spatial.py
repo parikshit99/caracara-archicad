@@ -7,7 +7,8 @@ of cells, and only boxes sharing a cell are compared. Boxes that would span too 
 the grid small. Built per question from data Archicad already computed; nothing is kept.
 
 Bounding boxes are an approximation of the real shapes: a diagonal wall or an L-shaped room
-has a box larger than itself. Exact collision checks are left to Archicad (GetCollisions).
+has a box larger than itself. "Inside" can also test a container's plan outline, with its holes,
+where Archicad gives one. Exact collision checks are left to Archicad (GetCollisions).
 """
 
 from __future__ import annotations
@@ -15,7 +16,7 @@ from __future__ import annotations
 import math
 from collections import defaultdict
 from collections.abc import Iterable, Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 # A box covering more cells than this is compared with every box instead of being filed.
 MAX_CELLS_PER_BOX = 64
@@ -44,6 +45,45 @@ class Box:
     def contains_point(self, point: tuple[float, float, float]) -> bool:
         x, y, z = point
         return self.x_min <= x <= self.x_max and self.y_min <= y <= self.y_max and self.z_min <= z <= self.z_max
+
+
+Point2D = tuple[float, float]
+
+
+# How far from an edge, in meters, a point still counts as lying on it.
+EDGE_TOLERANCE = 1e-9
+
+
+def _on_edge(point: Point2D, start: Point2D, end: Point2D) -> bool:
+    (x, y), (x1, y1), (x2, y2) = point, start, end
+    cross = (x2 - x1) * (y - y1) - (y2 - y1) * (x - x1)
+    within = min(x1, x2) - EDGE_TOLERANCE <= x <= max(x1, x2) + EDGE_TOLERANCE
+    return abs(cross) <= EDGE_TOLERANCE and within and min(y1, y2) - EDGE_TOLERANCE <= y <= max(y1, y2) + EDGE_TOLERANCE
+
+
+def _side(point: Point2D, ring: list[Point2D]) -> int:
+    """1 when the point is inside the closed ring, 0 when it lies on its edge, -1 when it is outside."""
+    x, y = point
+    inside = False
+    for start, end in zip(ring, ring[1:] + ring[:1], strict=True):
+        if _on_edge(point, start, end):
+            return 0
+        (x1, y1), (x2, y2) = start, end
+        # Count the edges a ray to the right of the point crosses.
+        if (y1 > y) != (y2 > y) and x < x1 + (y - y1) * (x2 - x1) / (y2 - y1):
+            inside = not inside
+    return 1 if inside else -1
+
+
+@dataclass(frozen=True)
+class Outline:
+    """A plan polygon with straight edges and its holes. A point on an edge counts as inside."""
+
+    ring: list[Point2D]
+    holes: list[list[Point2D]] = field(default_factory=list)
+
+    def contains(self, point: Point2D) -> bool:
+        return _side(point, self.ring) >= 0 and all(_side(point, hole) <= 0 for hole in self.holes)
 
 
 class GridIndex:
@@ -131,14 +171,23 @@ def pairs_within(boxes: list[Box], others: list[Box], distance: float, keep: int
     return result
 
 
-def containers_of(boxes: list[Box], containers: list[Box]) -> dict[str, list[str]]:
-    """For each box, the containers whose box holds its center point."""
+def containers_of(
+    boxes: list[Box], containers: list[Box], outlines: dict[str, Outline] | None = None
+) -> dict[str, list[str]]:
+    """For each box, the containers that hold its center point: within the container's box and, where the
+    container has a plan outline, within that outline."""
     index = GridIndex(containers)
+    outlines = outlines or {}
     inside: dict[str, list[str]] = {}
     for box in boxes:
         center = box.center()
         point = Box(box.key, *center, *center)
-        holders = [other.key for other in index.candidates(point) if other.contains_point(center)]
+        holders = [
+            other.key
+            for other in index.candidates(point)
+            if other.contains_point(center)
+            and (other.key not in outlines or outlines[other.key].contains((center[0], center[1])))
+        ]
         if holders:
             inside[box.key] = holders
     return inside
