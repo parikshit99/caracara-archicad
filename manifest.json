@@ -115,6 +115,10 @@
       "description": "Returns stories, units, layers, classification systems and north direction; private project details only on request."
     },
     {
+      "name": "archicad_find_properties",
+      "description": "Finds property definitions by name, with small typos allowed; reads definitions, never values."
+    },
+    {
       "name": "archicad_spatial_query",
       "description": "Finds elements near, inside or colliding with the elements of another set."
     },

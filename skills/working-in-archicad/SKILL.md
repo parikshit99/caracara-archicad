@@ -34,6 +34,8 @@ Do not describe the model as if you had read it.
 - For totals (volumes, areas, lengths, materials) use `archicad_calculate` with one SQL query.
   Call it without `sql` to see the columns. Never add numbers up yourself.
 - For "near", "inside" and "colliding" questions use `archicad_spatial_query`.
+- To find a property by the name the user uses, call `archicad_find_properties` instead of
+  listing every property.
 - Sets are snapshots. When a result shows `missingCount` above zero or the model may have
   changed, query again.
 

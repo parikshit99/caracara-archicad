@@ -96,6 +96,12 @@ Check each of these after every upstream merge.
 - **A few general tools instead of one tool per task** (Caracara). Tool definitions are sent in
   every conversation; Caracara has about ten. alesdev88/Archicad-MCP chose the other way, with
   about sixty dedicated tools, and checks each task more closely as a result.
+- **`archicad_find_properties` instead of listing every property** (2026-11-02, maintainer).
+  Archicad has about 1,600 built-in properties; listing them all to find one fills the
+  conversation. The tool reads them in the server and returns the closest names, scored with the
+  standard library's difflib, so no dependency is added (R11). It covers property definitions
+  only, not attributes such as layers or materials, and never reads property values, which the
+  property-read check on the roadmap is about.
 - **Element sets instead of GUID lists** (Caracara). Element lists
   stay in the server behind a `setId`, so large selections do not fill the conversation.
   Sets are snapshots and do not follow later changes in Archicad; results report the set's age
