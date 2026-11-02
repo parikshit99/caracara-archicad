@@ -17,7 +17,7 @@ from payloads import archicad_call_tool
 from caracara_archicad_mcp import file_paths
 from caracara_archicad_mcp.context import multi_conn_instance
 from caracara_archicad_mcp.field_masking import prune_payload
-from caracara_archicad_mcp.result_registry import STORAGE_SETS, ResultRegistry
+from caracara_archicad_mcp.result_registry import STORAGE_SETS, ResultRegistry, SetProject
 from caracara_archicad_mcp.safety import is_read_only_command
 from caracara_archicad_mcp.tools import overrides
 from caracara_archicad_mcp.tools.custom import meta_verbs
@@ -269,6 +269,10 @@ async def test_query_returns_running_job_instead_of_empty_set(monkeypatch):
     assert len(STORAGE_SETS) == 0
 
 
+async def _open_project(port: int) -> SetProject:
+    return SetProject(port, "solo:/project.pln")
+
+
 @pytest.mark.asyncio
 async def test_query_ids_output_is_capped(monkeypatch):
     elements = [{"elementId": {"guid": str(i)}} for i in range(meta_verbs.MAX_INLINE_ELEMENTS + 5)]
@@ -277,6 +281,7 @@ async def test_query_ids_output_is_capped(monkeypatch):
         return {"elements": elements}
 
     monkeypatch.setattr(meta_verbs, "call_tool_payload", selected)
+    monkeypatch.setattr(meta_verbs, "open_project", _open_project)
     result = await archicad_query("selected", output="ids")
     assert result["count"] == len(elements)
     assert len(result["elements"]) == meta_verbs.MAX_INLINE_ELEMENTS
@@ -308,7 +313,7 @@ def http_archicad(tapir_http):
     from caracara_archicad_mcp.tools.registration import register_all_tools
 
     register_all_tools()
-    header = SimpleNamespace(core=CoreCommands(Port(19723)))
+    header = SimpleNamespace(core=CoreCommands(Port(19723)), port=Port(19723))
     headers = {Port(19723): header}
     multi_conn_instance.set(SimpleNamespace(active=headers, open_port_headers=headers))
     yield tapir_http
@@ -318,6 +323,7 @@ def http_archicad(tapir_http):
 @pytest.mark.asyncio
 async def test_http_mock_serves_queries_over_loopback(http_archicad):
     http_archicad.on_tapir_command("GetElementsByType", {"elements": [{"elementId": {"guid": "w1"}}]})
+    http_archicad.on_tapir_command("GetProjectInfo", {"isUntitled": True, "isTeamwork": False})
 
     result = await archicad_query("walls", port=19723)
 
@@ -367,6 +373,7 @@ async def test_query_all_follows_every_page(monkeypatch):
         return pages[arguments.get("page_token")]
 
     monkeypatch.setattr(meta_verbs, "call_tool_payload", paged)
+    monkeypatch.setattr(meta_verbs, "open_project", _open_project)
     result = await archicad_query("all")
     assert result["count"] == 201
     assert ResultRegistry.count(result["setId"]) == 201

@@ -113,7 +113,7 @@ async def test_archicad_query_all_elements_with_filters(fake_archicad):
 
     assert res["count"] == 1
     assert res["elements"] == all_elems
-    assert fake_archicad.calls[-1] == ("GetAllElements", {"filters": ["IsVisibleIn3D"]})
+    assert fake_archicad.calls == [("GetAllElements", {"filters": ["IsVisibleIn3D"]}), ("GetProjectInfo", {})]
 
 
 @pytest.mark.asyncio
@@ -359,7 +359,10 @@ async def test_archicad_query_by_type_is_not_rerouted_by_unrelated_filter_keys(f
     )
 
     assert res["count"] == 1
-    assert fake_archicad.calls == [("GetElementsByType", {"elementType": "Wall", "filters": ["IsEditable"]})]
+    assert fake_archicad.calls == [
+        ("GetProjectInfo", None),
+        ("GetElementsByType", {"elementType": "Wall", "filters": ["IsEditable"]}),
+    ]
 
 
 @pytest.mark.asyncio

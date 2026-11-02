@@ -16,17 +16,23 @@ from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
 
 from caracara_archicad_mcp.app import mcp
-from caracara_archicad_mcp.result_registry import ResultRegistry
+from caracara_archicad_mcp.result_registry import ResultRegistry, SetProject
 from caracara_archicad_mcp.spatial import Box, containers_of, pairs_within
-from caracara_archicad_mcp.tools.custom.element_sets import as_elements, element_ids, labels_or_warning, target_elements
+from caracara_archicad_mcp.tools.custom.element_sets import (
+    as_elements,
+    element_ids,
+    labels_or_warning,
+    open_project,
+    target_elements,
+)
 from caracara_archicad_mcp.tools.custom.functions import call_and_wait
 
 MAX_ELEMENTS = 100_000
 MAX_LISTED = 20
 
 
-def _resolve(target: str | list[Any], label: str) -> list[dict[str, Any]]:
-    ids, _ = element_ids(target_elements(target, label))
+async def _resolve(target: str | list[Any], port: int, label: str) -> list[dict[str, Any]]:
+    ids, _ = element_ids(await target_elements(target, port, label))
     if not ids:
         raise ToolError(f"{label} contains no elements.")
     if len(ids) > MAX_ELEMENTS:
@@ -53,26 +59,24 @@ async def _boxes(ids: list[dict[str, Any]], port: int) -> tuple[list[Box], int]:
     return boxes, len(ids) - len(boxes)
 
 
-def _new_set(guids: set[str] | list[str], label: str) -> str | None:
-    return (
-        ResultRegistry.register([{"elementId": {"guid": g}} for g in sorted(guids)], element_type=label)
-        if guids
-        else None
-    )
+def _new_set(guids: set[str] | list[str], label: str, project: SetProject) -> str | None:
+    if not guids:
+        return None
+    return ResultRegistry.register([{"elementId": {"guid": g}} for g in sorted(guids)], label, project)
 
 
-async def _near(targets: list[dict], others: list[dict], distance: float, port: int) -> dict[str, Any]:
-    target_boxes, target_missing = await _boxes(targets, port)
-    other_boxes, other_missing = await _boxes(others, port)
+async def _near(targets: list[dict], others: list[dict], distance: float, project: SetProject) -> dict[str, Any]:
+    target_boxes, target_missing = await _boxes(targets, project.port)
+    other_boxes, other_missing = await _boxes(others, project.port)
     found = pairs_within(target_boxes, other_boxes, distance, keep=MAX_LISTED)
     response: dict[str, Any] = {
         "relation": "near",
         "distanceMeters": distance,
         "pairCount": found.pair_count,
         "matchedCount": len(found.matched),
-        "matchedSetId": _new_set(found.matched, "Near"),
+        "matchedSetId": _new_set(found.matched, "Near", project),
         "otherMatchedCount": len(found.other_matched),
-        "otherMatchedSetId": _new_set(found.other_matched, "NearOther"),
+        "otherMatchedSetId": _new_set(found.other_matched, "NearOther", project),
         "nearest": [
             {"element": {"guid": a.key}, "other": {"guid": b.key}, "gapMeters": round(gap, 4)}
             for a, b, gap in found.nearest
@@ -84,15 +88,15 @@ async def _near(targets: list[dict], others: list[dict], distance: float, port: 
     return response
 
 
-async def _inside(targets: list[dict], containers: list[dict], port: int) -> dict[str, Any]:
-    target_boxes, target_missing = await _boxes(targets, port)
-    container_boxes, container_missing = await _boxes(containers, port)
+async def _inside(targets: list[dict], containers: list[dict], project: SetProject) -> dict[str, Any]:
+    target_boxes, target_missing = await _boxes(targets, project.port)
+    container_boxes, container_missing = await _boxes(containers, project.port)
     holders = containers_of(target_boxes, container_boxes)
     per_container = Counter(holder for keys in holders.values() for holder in keys)
     response: dict[str, Any] = {
         "relation": "inside",
         "insideCount": len(holders),
-        "insideSetId": _new_set(list(holders), "Inside"),
+        "insideSetId": _new_set(list(holders), "Inside", project),
         "outsideCount": len(target_boxes) - len(holders),
         "byContainer": [
             {"container": {"guid": key}, "count": count} for key, count in per_container.most_common(MAX_LISTED)
@@ -105,11 +109,11 @@ async def _inside(targets: list[dict], containers: list[dict], port: int) -> dic
     return response
 
 
-async def _collides(targets: list[dict], others: list[dict], port: int) -> dict[str, Any]:
+async def _collides(targets: list[dict], others: list[dict], project: SetProject) -> dict[str, Any]:
     result = await call_and_wait(
         "elements_get_collisions",
         {
-            "port": port,
+            "port": project.port,
             "params": {
                 "elementsGroup1": as_elements(targets),
                 "elementsGroup2": as_elements(others),
@@ -127,9 +131,9 @@ async def _collides(targets: list[dict], others: list[dict], port: int) -> dict[
         "bodyCollisionCount": sum(1 for c in collisions if c.get("hasBodyCollision")),
         "clearanceCollisionCount": sum(1 for c in collisions if c.get("hasClearenceCollision")),
         "matchedCount": len(matched),
-        "matchedSetId": _new_set(matched, "Colliding"),
+        "matchedSetId": _new_set(matched, "Colliding", project),
         "otherMatchedCount": len(other_matched),
-        "otherMatchedSetId": _new_set(other_matched, "CollidingOther"),
+        "otherMatchedSetId": _new_set(other_matched, "CollidingOther", project),
         "examples": [
             {
                 "element": c["elementId1"],
@@ -188,14 +192,15 @@ async def archicad_spatial_query(
     target_port = port or 19723
     if distance < 0:
         raise ToolError("distance must be zero or more meters.")
-    targets = _resolve(target_set, "target_set")
-    others = _resolve(other_set, "other_set")
+    targets = await _resolve(target_set, target_port, "target_set")
+    others = await _resolve(other_set, target_port, "other_set")
+    project = await open_project(target_port)
     if relation == "near":
-        response = await _near(targets, others, distance, target_port)
+        response = await _near(targets, others, distance, project)
     elif relation == "inside":
-        response = await _inside(targets, others, target_port)
+        response = await _inside(targets, others, project)
     elif relation == "collides":
-        response = await _collides(targets, others, target_port)
+        response = await _collides(targets, others, project)
     else:
         raise ToolError("relation must be 'near', 'inside' or 'collides'.")
     return await _with_element_ids(response, target_port)

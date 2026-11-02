@@ -127,7 +127,11 @@ async def test_collides_uses_archicads_exact_check(archicad):
 @pytest.mark.asyncio
 async def test_only_reads_reach_archicad(archicad):
     await archicad_spatial_query("near", _ids(1, 2, 3), _ids(1, 2, 3), distance=1.0, port=archicad.port)
-    assert {command for command, _ in archicad.calls} == {"Get3DBoundingBoxes", "GetDetailsOfElements"}
+    assert {command for command, _ in archicad.calls} == {
+        "GetProjectInfo",
+        "Get3DBoundingBoxes",
+        "GetDetailsOfElements",
+    }
 
 
 @pytest.mark.asyncio

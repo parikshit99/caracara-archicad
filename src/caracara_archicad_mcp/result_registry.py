@@ -7,6 +7,11 @@ Memory is bounded three ways: at most MAX_CAPACITY sets (LRU eviction), at most
 MAX_TOTAL_ELEMENTS elements across all sets (LRU eviction), and an idle TTL after
 which an unused set expires. All access is serialized by a lock because tools run
 on worker threads.
+
+A set remembers the port and project its elements were found in. A GUID means
+something only in its own project, and a copy of a file keeps the GUIDs of the
+original, so a set used on another port or after another project was opened
+would quietly address the wrong elements; such a use is refused.
 """
 
 from __future__ import annotations
@@ -15,6 +20,7 @@ import re
 import threading
 import time
 from collections import OrderedDict
+from dataclasses import dataclass
 from typing import Any, ClassVar
 
 from mcp.server.mcpserver.exceptions import ToolError
@@ -24,6 +30,31 @@ STORAGE_SETS: OrderedDict[str, list[dict]] = OrderedDict()
 
 _MAX_PREFIX_LENGTH = 32
 _MAX_PREFIXES = 256
+UNTITLED = "untitled"
+
+
+@dataclass(frozen=True)
+class SetProject:
+    """The Archicad (port) and project a set's elements belong to."""
+
+    port: int
+    project: str  # 'solo:<path>', 'teamwork:<location>' or 'untitled'
+
+    def describe(self) -> str:
+        name = "an unsaved project" if self.project == UNTITLED else self.project.split(":", 1)[1]
+        return f"{name} on port {self.port}"
+
+
+def project_identity(project_info: Any) -> str:
+    """The open project, from Tapir's GetProjectInfo answer. All unsaved projects look the same."""
+    if not isinstance(project_info, dict):
+        raise ToolError(f"Archicad did not say which project is open: {project_info}")
+    if project_info.get("isUntitled"):
+        return UNTITLED
+    location = project_info.get("projectLocation") or project_info.get("projectPath")
+    if not location:
+        raise ToolError("Archicad did not say where the open project is saved; try again.")
+    return f"{'teamwork' if project_info.get('isTeamwork') else 'solo'}:{location}"
 
 
 class ResultRegistry:
@@ -40,6 +71,7 @@ class ResultRegistry:
     _timestamps: ClassVar[dict[str, float]] = {}
     # When each set was found; a set does not follow later changes in Archicad.
     _created: ClassVar[dict[str, float]] = {}
+    _projects: ClassVar[dict[str, SetProject]] = {}
     _lock: ClassVar[threading.RLock] = threading.RLock()
 
     @classmethod
@@ -78,10 +110,13 @@ class ResultRegistry:
             cls.TTL_SECONDS = cls.DEFAULT_TTL_SECONDS
 
     @classmethod
-    def register(cls, elements: list[dict | Any], element_type: str | None = None) -> str:
+    def register(
+        cls, elements: list[dict | Any], element_type: str | None = None, project: SetProject | None = None
+    ) -> str:
         """Register a list of element dictionaries and return an opaque set_id handle.
 
         Example set_id: 'set_walls_01', 'set_columns_02', 'set_elements_01'.
+        project: where the elements were found; a set without one is not checked when used.
         Evicts least-recently-used sets until the new set fits the capacity and element budget.
         """
         normalized = [cls._normalize(elem) for elem in elements]
@@ -108,6 +143,8 @@ class ResultRegistry:
 
             STORAGE_SETS[set_id] = normalized
             cls._timestamps[set_id] = cls._created[set_id] = time.monotonic()
+            if project is not None:
+                cls._projects[set_id] = project
             return set_id
 
     @classmethod
@@ -125,12 +162,23 @@ class ResultRegistry:
             return STORAGE_SETS[set_id]
 
     @classmethod
-    def get_or_tool_error(cls, set_id: str) -> list[dict]:
-        """Retrieve the element collection for a given set_id, raising ToolError on failure."""
-        try:
-            return cls.get(set_id)
-        except KeyError:
-            raise ToolError(f"Set handle '{set_id}' not found or expired.") from None
+    def get_or_tool_error(cls, set_id: str, project: SetProject | None = None) -> list[dict]:
+        """Retrieve the element collection for a given set_id, raising ToolError on failure.
+
+        project: the port and project the set is about to be used in; a set found elsewhere is refused.
+        """
+        with cls._lock:
+            try:
+                elements = cls.get(set_id)
+            except KeyError:
+                raise ToolError(f"Set handle '{set_id}' not found or expired.") from None
+            found_in = cls._projects.get(set_id)
+        if project is not None and found_in is not None and found_in != project:
+            raise ToolError(
+                f"Set '{set_id}' was found in {found_in.describe()}, but this call works in {project.describe()}. "
+                "Its elements belong to the other project; query again in this one."
+            )
+        return elements
 
     @classmethod
     def has(cls, set_id: str) -> bool:
@@ -152,6 +200,13 @@ class ResultRegistry:
             cls._counters.clear()
             cls._timestamps.clear()
             cls._created.clear()
+            cls._projects.clear()
+
+    @classmethod
+    def project_of(cls, set_id: str) -> SetProject | None:
+        """Where the set's elements were found, or None when that is unknown."""
+        with cls._lock:
+            return cls._projects.get(set_id)
 
     @classmethod
     def age_seconds(cls, set_id: str) -> float | None:
@@ -192,6 +247,7 @@ class ResultRegistry:
         STORAGE_SETS.pop(set_id, None)
         cls._timestamps.pop(set_id, None)
         cls._created.pop(set_id, None)
+        cls._projects.pop(set_id, None)
 
     @classmethod
     def _total_elements(cls) -> int:

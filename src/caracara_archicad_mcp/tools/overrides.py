@@ -14,7 +14,7 @@ from multiconn_archicad.models.official.commands import GetElementsByClassificat
 from multiconn_archicad.models.tapir.commands import FilterElementsParameters, GetElementsByTypeParameters
 
 from caracara_archicad_mcp.field_masking import prune_payload
-from caracara_archicad_mcp.result_registry import ResultRegistry
+from caracara_archicad_mcp.result_registry import ResultRegistry, SetProject, project_identity
 from caracara_archicad_mcp.tools.custom.models import (
     DeleteElementsInput,
     GetDetailsOfElementsInput,
@@ -42,18 +42,31 @@ def _dump(value: Any, **kwargs: Any) -> Any:
     return value.model_dump(by_alias=True, **kwargs) if hasattr(value, "model_dump") else value
 
 
-def _set_receipt(raw_result: Any, element_type: str) -> Any:
+def _open_project(conn_header: ConnHeader) -> SetProject:
+    """Asked each time: the connection's cached project is not updated when another project is opened."""
+    info = conn_header.core.post_tapir_command(command="GetProjectInfo")
+    return SetProject(int(conn_header.port), project_identity(info))
+
+
+def _set_receipt(raw_result: Any, element_type: str, project: SetProject) -> Any:
     """Store a listing's elements as a virtual set and return a compact receipt instead."""
     if isinstance(raw_result, dict) and "elements" in raw_result:
         elements = raw_result["elements"]
-        set_id = ResultRegistry.register(elements, element_type=element_type)
+        set_id = ResultRegistry.register(elements, element_type=element_type, project=project)
         return {"setId": set_id, "count": len(elements), "elementType": element_type}
     return raw_result
 
 
-def _target_elements(target_set_id: str | None, elements: list[Any] | None) -> list[Any] | None:
+def _set_elements(conn_header: ConnHeader, set_id: str) -> list[Any]:
+    project = _open_project(conn_header) if ResultRegistry.project_of(set_id) else None
+    return ResultRegistry.get_or_tool_error(set_id, project)
+
+
+def _target_elements(
+    conn_header: ConnHeader, target_set_id: str | None, elements: list[Any] | None
+) -> list[Any] | None:
     if target_set_id:
-        return ResultRegistry.get_or_tool_error(target_set_id)
+        return _set_elements(conn_header, target_set_id)
     if elements is not None:
         return [_dump(e) for e in elements]
     return None
@@ -64,28 +77,31 @@ def _target_elements(target_set_id: str | None, elements: list[Any] | None) -> l
 
 def get_elements_by_type(conn_header: ConnHeader, params: GetElementsByTypeParameters) -> dict:
     """Returns every element of the given type as a virtual set receipt (setId, count, elementType)."""
+    project = _open_project(conn_header)
     raw_result = conn_header.core.post_tapir_command(
         command="GetElementsByType", parameters=params.model_dump(mode="json", by_alias=True, exclude_none=True)
     )
     element_type = params.elementType.value if hasattr(params.elementType, "value") else str(params.elementType)
-    return _set_receipt(raw_result, element_type)
+    return _set_receipt(raw_result, element_type, project)
 
 
 def filter_elements(conn_header: ConnHeader, params: FilterElementsParameters) -> dict:
     """Tests elements by the given criterias and returns the matches as a virtual set receipt."""
+    project = _open_project(conn_header)
     raw_result = conn_header.core.post_tapir_command(
         command="FilterElements", parameters=params.model_dump(mode="json", by_alias=True, exclude_none=True)
     )
-    return _set_receipt(raw_result, "Filtered")
+    return _set_receipt(raw_result, "Filtered", project)
 
 
 def get_elements_by_classification(conn_header: ConnHeader, params: GetElementsByClassificationParameters) -> dict:
     """Returns every element with the given classification as a virtual set receipt."""
+    project = _open_project(conn_header)
     raw_result = conn_header.core.post_command(
         command="API.GetElementsByClassification",
         parameters=params.model_dump(mode="json", by_alias=True, exclude_none=True),
     )
-    return _set_receipt(raw_result, "Classified")
+    return _set_receipt(raw_result, "Classified", project)
 
 
 # --- targetSetId mutations ------------------------------------------------------
@@ -93,7 +109,7 @@ def get_elements_by_classification(conn_header: ConnHeader, params: GetElementsB
 
 def delete_elements(conn_header: ConnHeader, params: DeleteElementsInput) -> dict:
     """Deletes elements. Accepts targetSetId or explicit elements array."""
-    elements = _target_elements(params.target_set_id, params.elements)
+    elements = _target_elements(conn_header, params.target_set_id, params.elements)
     if elements is None:
         raise ToolError("Either 'targetSetId' or 'elements' must be provided to delete_elements.")
     return conn_header.core.post_tapir_command(command="DeleteElements", parameters={"elements": elements})
@@ -101,7 +117,7 @@ def delete_elements(conn_header: ConnHeader, params: DeleteElementsInput) -> dic
 
 def highlight_elements(conn_header: ConnHeader, params: HighlightElementsInput) -> dict:
     """Highlights the elements of targetSetId or the elements array; an empty array clears highlights."""
-    elements = _target_elements(params.target_set_id, params.elements) or []
+    elements = _target_elements(conn_header, params.target_set_id, params.elements) or []
     colors = [_dump(c) for c in params.highlighted_colors or []]
     # Tapir requires highlightedColors, with exactly one color per element.
     if not elements:
@@ -135,7 +151,7 @@ def set_property_values_of_elements(conn_header: ConnHeader, params: SetProperty
             },
         )
 
-    elements = ResultRegistry.get_or_tool_error(params.target_set_id)
+    elements = _set_elements(conn_header, params.target_set_id)
     items_to_apply: list[dict[str, Any]] = []
     if params.property_id is not None and params.property_value is not None:
         items_to_apply.append({"propertyId": _dump(params.property_id), "propertyValue": _dump(params.property_value)})

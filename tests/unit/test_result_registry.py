@@ -7,7 +7,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from payloads import archicad_call_tool
 from pydantic import BaseModel, Field
 
-from caracara_archicad_mcp.result_registry import STORAGE_SETS, ResultRegistry
+from caracara_archicad_mcp.result_registry import STORAGE_SETS, ResultRegistry, SetProject, project_identity
 from caracara_archicad_mcp.tools.overrides import DEFAULT_HIGHLIGHT_COLOR
 
 
@@ -371,3 +371,60 @@ def test_result_registry_invalid_capacity():
     """Verifies that setting a capacity less than 1 raises ValueError."""
     with pytest.raises(ValueError, match="at least 1"):
         ResultRegistry.set_capacity(0)
+
+
+# --- The project a set was found in ---------------------------------------------
+
+HERE = SetProject(19723, "solo:/projects/house.pln")
+
+
+def test_a_set_is_handed_out_in_its_own_project():
+    set_id = ResultRegistry.register([{"elementId": {"guid": "g"}}], "Wall", HERE)
+    assert ResultRegistry.get_or_tool_error(set_id, HERE) == [{"elementId": {"guid": "g"}}]
+
+
+@pytest.mark.parametrize(
+    "elsewhere",
+    [SetProject(19723, "solo:/projects/house copy.pln"), SetProject(19724, "solo:/projects/house.pln")],
+)
+def test_a_set_is_refused_in_another_project_or_archicad(elsewhere):
+    set_id = ResultRegistry.register([{"elementId": {"guid": "g"}}], "Wall", HERE)
+    with pytest.raises(ToolError, match=r"was found in /projects/house.pln on port 19723"):
+        ResultRegistry.get_or_tool_error(set_id, elsewhere)
+
+
+def test_a_set_of_unknown_origin_is_not_checked():
+    set_id = ResultRegistry.register([{"elementId": {"guid": "g"}}])
+    assert ResultRegistry.project_of(set_id) is None
+    assert ResultRegistry.get_or_tool_error(set_id, HERE) == [{"elementId": {"guid": "g"}}]
+
+
+def test_a_deleted_set_forgets_its_project():
+    set_id = ResultRegistry.register([{"elementId": {"guid": "g"}}], "Wall", HERE)
+    ResultRegistry.delete(set_id)
+    assert ResultRegistry.project_of(set_id) is None
+
+
+@pytest.mark.parametrize(
+    ("info", "identity"),
+    [
+        ({"isUntitled": False, "isTeamwork": False, "projectPath": "/p/house.pln"}, "solo:/p/house.pln"),
+        (
+            {"isUntitled": False, "isTeamwork": True, "projectLocation": "bimcloud://s/house", "projectPath": "house"},
+            "teamwork:bimcloud://s/house",
+        ),
+        ({"isUntitled": True, "isTeamwork": False}, "untitled"),
+    ],
+)
+def test_project_identity(info, identity):
+    assert project_identity(info) == identity
+
+
+def test_unsaved_projects_are_described_as_such():
+    assert SetProject(19723, "untitled").describe() == "an unsaved project on port 19723"
+
+
+@pytest.mark.parametrize("info", [{"isUntitled": False, "isTeamwork": False}, "not a dict"])
+def test_project_identity_needs_an_answer_that_names_the_project(info):
+    with pytest.raises(ToolError, match="did not say"):
+        project_identity(info)

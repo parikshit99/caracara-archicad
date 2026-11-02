@@ -17,9 +17,9 @@ from mcp.types import ToolAnnotations
 from pydantic import ValidationError
 
 from caracara_archicad_mcp.app import mcp
-from caracara_archicad_mcp.result_registry import ResultRegistry
+from caracara_archicad_mcp.result_registry import ResultRegistry, SetProject
 from caracara_archicad_mcp.safety import ensure_allowed
-from caracara_archicad_mcp.tools.custom.element_sets import normalize_element_type
+from caracara_archicad_mcp.tools.custom.element_sets import normalize_element_type, open_project
 from caracara_archicad_mcp.tools.custom.functions import call_and_collect, call_and_wait
 from caracara_archicad_mcp.tools.custom.mutation_checks import MAX_LISTED
 from caracara_archicad_mcp.tools.tool_registry import get_tool_entry
@@ -223,14 +223,14 @@ async def _create(element_type: str, items: list[_Item], built: _Built, port: in
             built.refs[item.ref] = element_id
 
 
-def _result(built: _Built, error: str | None = None) -> dict[str, Any]:
+def _result(built: _Built, project: SetProject, error: str | None = None) -> dict[str, Any]:
     response: dict[str, Any] = {
         "createdCount": len(built.created),
         "created": dict(built.by_type),
         "undoSteps": built.undo_steps,
     }
     if built.created:
-        response["setId"] = ResultRegistry.register(built.created, element_type="Element")
+        response["setId"] = ResultRegistry.register(built.created, "Element", project)
         response["message"] = (
             f"To remove everything this build made, call archicad_mutate(target_set='{response['setId']}', "
             "action='delete'). Ctrl+Z in Archicad would take one step per element type."
@@ -278,10 +278,12 @@ async def archicad_build(
         return {"dryRun": True, **report}
     for element_type in plan:
         ensure_allowed(ELEMENT_COMMANDS[element_type][0])
+    # Read before building, so a failure here cannot hide what was already made.
+    project = await open_project(target_port)
     built = _Built()
     for element_type, items in plan.items():
         try:
             await _create(element_type, items, built, target_port)
         except ToolError as error:
-            return _result(built, str(error))
-    return _result(built)
+            return _result(built, project, str(error))
+    return _result(built, project)

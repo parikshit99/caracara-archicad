@@ -47,6 +47,17 @@ class FakeArchicad:
         self.product_info = ProductInfo(version=28, buildNumber=6003, languageCode="USA")
         self.archicad_location = ArchicadLocation(archicadLocation="/Applications/GRAPHISOFT/Archicad 28/ARCHICAD")
         self.archicad_id = SoloProjectID(projectName="FakeProject", projectPath="/path/to/fake_project.pln")
+        # Element sets remember the project they were found in, so every set-making call asks for it.
+        self.on_tapir_command(
+            "GetProjectInfo",
+            {
+                "isUntitled": False,
+                "isTeamwork": False,
+                "projectLocation": "/path/to/fake_project.pln",
+                "projectPath": "/path/to/fake_project.pln",
+                "projectName": "FakeProject",
+            },
+        )
 
     def on_tapir_command(self, command: str, response: dict | Callable[[dict | None], dict]) -> None:
         """Registers the canned response for a Tapir command, or a function of its parameters that builds it."""

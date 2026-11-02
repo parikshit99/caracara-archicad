@@ -11,8 +11,8 @@ from typing import Any
 from mcp.server.mcpserver.exceptions import ToolError
 from multiconn_archicad.models.tapir.types import ElementType
 
-from caracara_archicad_mcp.result_registry import ResultRegistry
-from caracara_archicad_mcp.tools.custom.functions import call_and_collect
+from caracara_archicad_mcp.result_registry import ResultRegistry, SetProject, project_identity
+from caracara_archicad_mcp.tools.custom.functions import call_and_collect, call_and_wait
 
 # Archicad's element type names by their lowercase spelling without underscores.
 _ELEMENT_TYPES = {element_type.value.lower(): element_type.value for element_type in ElementType}
@@ -84,10 +84,17 @@ async def labels_or_warning(guids: list[str], port: int, warnings: list[str]) ->
         return {}
 
 
-def target_elements(target_set: str | list[Any], label: str = "target_set") -> list[Any]:
-    """The elements a setId stands for, or the given list itself."""
+async def open_project(port: int) -> SetProject:
+    """The project open on the port now, read from Archicad each time, because the user can open another one."""
+    return SetProject(port, project_identity(await call_and_wait("project_get_project_info", {"port": port})))
+
+
+async def target_elements(target_set: str | list[Any], port: int, label: str = "target_set") -> list[Any]:
+    """The elements a setId stands for, or the given list itself. A set found in another project, or on
+    another port, is refused."""
     if isinstance(target_set, str):
-        return ResultRegistry.get_or_tool_error(target_set)
+        project = await open_project(port) if ResultRegistry.project_of(target_set) else None
+        return ResultRegistry.get_or_tool_error(target_set, project)
     if isinstance(target_set, list):
         return target_set
     raise ToolError(f"Invalid {label}: must be a setId (str) or a list of elements.")

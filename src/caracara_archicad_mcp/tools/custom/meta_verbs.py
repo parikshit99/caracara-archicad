@@ -27,7 +27,12 @@ from pydantic import BaseModel
 from caracara_archicad_mcp.app import mcp
 from caracara_archicad_mcp.result_registry import ResultRegistry
 from caracara_archicad_mcp.safety import ensure_allowed
-from caracara_archicad_mcp.tools.custom.element_sets import element_ids, normalize_element_type, target_elements
+from caracara_archicad_mcp.tools.custom.element_sets import (
+    element_ids,
+    normalize_element_type,
+    open_project,
+    target_elements,
+)
 from caracara_archicad_mcp.tools.custom.functions import call_tool_payload, is_running
 from caracara_archicad_mcp.tools.custom.mutation_checks import (
     confirmation_reasons,
@@ -207,7 +212,8 @@ async def archicad_query(
         return found.raw
     set_id = found.set_id
     if not set_id or not ResultRegistry.has(set_id):
-        set_id = ResultRegistry.register(found.elements, element_type=found.element_type)
+        project = await open_project(target_port)
+        set_id = ResultRegistry.register(found.elements, element_type=found.element_type, project=project)
     return await _query_output(found, set_id, output, target_port)
 
 
@@ -389,7 +395,7 @@ async def _ask_user(
         return None
     try:
         ensure_allowed(ACTION_COMMANDS[run_action], can_preview=True)
-        ids, _ = element_ids(target_elements(target_set))
+        ids, _ = element_ids(await target_elements(target_set, port or 19723))
     except ToolError:
         # archicad_mutate raises the same error itself, so there is nothing to ask about.
         return None
@@ -472,11 +478,12 @@ async def archicad_mutate(
         )
     if not dry_run:
         ensure_allowed(ACTION_COMMANDS[run_action], can_preview=True)
-    elements = target_elements(target_set)
+    target_port = port or 19723
+    elements = await target_elements(target_set, target_port)
     # An explicit element list gets a set of its own, so set-based commands can address it.
+    # Its origin is unknown, so it is not tied to a project.
     set_id = target_set if isinstance(target_set, str) else ResultRegistry.register(elements)
     ids, invalid = element_ids(elements)
-    target_port = port or 19723
     if dry_run:
         report = await preflight(
             action,

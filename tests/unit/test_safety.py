@@ -247,8 +247,8 @@ async def test_dry_run_move_checks_editability_only(fake_archicad):
         _ids(WALL_1, WALL_2), "move", {"vector": {"x": 1}}, port=fake_archicad.port, dry_run=True
     )
 
-    assert [command for command, _ in fake_archicad.calls] == ["FilterElements"]
-    assert fake_archicad.calls[0][1] == {"elements": _ids(WALL_1, WALL_2), "filters": ["IsEditable"]}
+    assert [command for command, _ in fake_archicad.calls] == ["GetProjectInfo", "FilterElements"]
+    assert fake_archicad.calls[1][1] == {"elements": _ids(WALL_1, WALL_2), "filters": ["IsEditable"]}
     assert report == {"dryRun": True, "action": "move", "elementCount": 2, "missingCount": 0, "warnings": []}
 
 

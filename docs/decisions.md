@@ -68,6 +68,13 @@ Check each of these after every upstream merge.
   the AI's `confirm`, so the AI cannot answer for the user. Saying no changes nothing. Clients
   without elicitation keep `confirm=true`. A client may answer such questions without showing them
   to a person; that is the client's choice and outside Caracara's control.
+- **A set works only in the project it came from** (2026-11-02, idea from DaviiiiiDave's fork).
+  A GUID means something only in its own project, and a copy of a file keeps the original's GUIDs,
+  so a set used after another project was opened, or on another Archicad, could address the wrong
+  elements without any error. Each set remembers its port and project, and every use asks Archicad
+  which project is open (`GetProjectInfo`, one read) and refuses a mismatch. Archicad cannot tell
+  unsaved projects apart, so those all count as the same project. A list of elements the AI passes
+  itself has no known origin and is not checked.
 - **Elements are never reserved automatically in Teamwork** (2026-10-23, Caracara). Reserving
   changes what the rest of the team can do, so it stays a person's decision.
 - **Large changes are never split into batches** (2026-10-24, Caracara, against an outside

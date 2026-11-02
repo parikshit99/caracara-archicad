@@ -35,7 +35,7 @@ Do not describe the model as if you had read it.
   Call it without `sql` to see the columns. Never add numbers up yourself.
 - For "near", "inside" and "colliding" questions use `archicad_spatial_query`.
 - Sets are snapshots. When a result shows `missingCount` above zero or the model may have
-  changed, query again.
+  changed, query again. A set is refused after another project is opened; query again there.
 
 ## Change
 

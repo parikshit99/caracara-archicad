@@ -52,6 +52,9 @@ These are how Caracara works today, not bugs.
 - **Element sets are snapshots.** A `setId` keeps the elements found at query time. Elements
   drawn later are not in it, and deleted ones are reported as missing. Results give the set's
   age (`setAgeSeconds`); query again when it matters. Unused sets expire after an hour.
+- **A set works only in its own project.** A `setId` is refused on another port, or after another
+  project was opened there, even a copy of the same file. Unsaved projects all look the same to
+  Archicad, so a set from one unsaved project is not refused in another.
 - **`inside` uses bounding boxes.** `archicad_spatial_query(relation="inside")` can count an
   element just outside an L-shaped or diagonal zone. `collides` uses Archicad's exact check.
 - **No custom properties in calculations.** `archicad_calculate` has element details and

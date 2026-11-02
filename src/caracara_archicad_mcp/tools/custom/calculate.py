@@ -191,7 +191,7 @@ async def archicad_calculate(
     port: int | None = None,
 ) -> dict[str, Any]:
     target_port = port or 19723
-    ids, invalid = element_ids(target_elements(target_set))
+    ids, invalid = element_ids(await target_elements(target_set, target_port))
     if not ids:
         raise ToolError("The set contains no elements to calculate over.")
     if len(ids) > MAX_ELEMENTS:
