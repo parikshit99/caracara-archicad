@@ -16,6 +16,7 @@ READ_ONLY_TOOLS = {
     "archicad_get_command_schema": False,
     "archicad_get_job": False,
     "archicad_read_tool": True,
+    "archicad_find_properties": True,
 }
 
 

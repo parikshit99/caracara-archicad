@@ -42,8 +42,6 @@ against a live Archicad and is built only if the check shows a problem.
   tool the AI can call.
 - **Custom properties in `archicad_calculate`.** Fire ratings, cost codes and other
   user-defined properties as table columns. Depends on the property-read check above.
-- **Find properties by name.** A fuzzy search over property and attribute definitions, so the
-  AI finds "Fire Rating" without listing all 1,600 built-in properties first.
 - **Find elements by property value**, in the style of Find & Select ("walls whose fire rating
   is empty"). Archicad cannot filter by property value itself, so this reads values and
   depends on the property-read check.
