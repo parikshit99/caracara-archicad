@@ -49,8 +49,6 @@ against a live Archicad and is built only if the check shows a problem.
   depends on the property-read check.
 - **Office rules.** Checks against an office standard written as YAML (required properties,
   classifications, layers), with a pass or fail per rule and the failing elements as a set.
-- **Exact shapes for `archicad_spatial_query`.** `inside` uses bounding boxes, so L-shaped and
-  diagonal zones can include elements just outside them.
 - **Schedules.** Archicad has no schedule API; another server reads and edits Scheme Settings'
   XML export. Only if people ask for it.
 

@@ -27,6 +27,10 @@ BOXES = {
     20: (1, 1, 0, 2, 2, 0.8),  # table in zone A
     21: (7, 1, 0, 8, 2, 0.8),  # table in zone B
     22: (20, 20, 0, 21, 21, 0.8),  # table outside
+    12: (0, 0, 0, 6, 6, 3),  # L-shaped zone, outline L_ZONE
+    13: (0, 0, 0, 6, 6, 3),  # zone with a curved edge
+    23: (3.5, 3.5, 0, 4.5, 4.5, 0.8),  # table in the corner the L-shaped zone leaves out
+    24: (0.5, 0.5, 0, 1.5, 1.5, 0.8),  # table in the L-shaped zone
     30: None,  # a label
 }
 
@@ -148,3 +152,58 @@ async def test_unread_element_ids_leave_the_answer_usable(archicad):
 
     assert result["nearest"] == [{"element": {"guid": _guid(2)}, "other": {"guid": _guid(1)}, "gapMeters": 0.2}]
     assert result["warnings"][0].startswith("Element IDs were not read")
+
+
+L_ZONE = [{"x": x, "y": y} for x, y in [(0, 0), (6, 0), (6, 2), (2, 2), (2, 6), (0, 6)]]
+CURVED_ZONE = {"polygonOutline": L_ZONE, "polygonArcs": [{"begIndex": 2, "endIndex": 3, "arcAngle": 1.0}]}
+
+
+def zone_details(params):
+    """GetDetailsOfElements with the plan outline of zones 12 and 13 and the Element ID of every element."""
+    entries = []
+    for item in params["elements"]:
+        number = int(item["elementId"]["guid"][-12:])
+        entry = {"type": "Object", "id": f"E-{number}", "details": {}}
+        if number == 12:
+            entry = {**entry, "type": "Zone", "details": {"polygonOutline": L_ZONE, "holes": [], "zCoordinate": 0}}
+        elif number == 13:
+            entry = {**entry, "type": "Zone", "details": {**CURVED_ZONE, "zCoordinate": 0}}
+        entries.append(entry)
+    return {"detailsOfElements": entries}
+
+
+@pytest.mark.asyncio
+async def test_inside_follows_the_outline_of_an_l_shaped_zone(archicad):
+    archicad.on_tapir_command("GetDetailsOfElements", zone_details)
+
+    result = await archicad_spatial_query("inside", _ids(23, 24), _ids(12), port=archicad.port)
+
+    assert ResultRegistry.get(result["insideSetId"]) == _ids(24)
+    assert result["outsideCount"] == 1
+    assert result["containersByOutline"] == 1
+    assert result["containersByBox"] == 0
+    reads = [params for command, params in archicad.calls if command == "GetDetailsOfElements"]
+    assert reads[0] == {"elements": _ids(12), "fields": ["type", "details"]}
+
+
+@pytest.mark.asyncio
+async def test_inside_uses_the_box_of_a_zone_with_curved_edges(archicad):
+    archicad.on_tapir_command("GetDetailsOfElements", zone_details)
+
+    result = await archicad_spatial_query("inside", _ids(23, 24), _ids(13), port=archicad.port)
+
+    assert result["insideCount"] == 2
+    assert result["containersByOutline"] == 0
+    assert result["containersByBox"] == 1
+
+
+@pytest.mark.asyncio
+async def test_inside_falls_back_to_boxes_when_outlines_cannot_be_read(archicad):
+    archicad.on_tapir_command("GetDetailsOfElements", {"error": {"code": 1, "message": "unavailable"}})
+
+    result = await archicad_spatial_query("inside", _ids(23, 24), _ids(12), port=archicad.port)
+
+    assert result["insideCount"] == 2
+    assert result["containersByBox"] == 1
+    assert result["warnings"][0].startswith("Zone and slab outlines were not read")
+    assert any(warning.startswith("Element IDs were not read") for warning in result["warnings"])
